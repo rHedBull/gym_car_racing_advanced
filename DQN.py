@@ -4,6 +4,13 @@ from collections import deque
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import os
+import numpy as np
+
+
+def device():
+    """Returns the device to run computations on."""
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQN:
     def __init__(
@@ -15,10 +22,11 @@ class DQN:
         gamma=0.99,
         epsilon_start=1.0,
         epsilon_end=0.01,
-        epsilon_decay=0.995,
+        epsilon_decay=0.99934,
         buffer_size=10000,
         batch_size=64,
         target_update_freq=10
+        target_update_freq=500,
     ):
         self.state_size = state_size
         self.action_size = action_size
@@ -32,6 +40,9 @@ class DQN:
         # Replay memory
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
+
+        # Device configuration
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Q-Network and Target Network
         self.q_network = QNetwork(state_size, action_size, hidden_size)
@@ -71,18 +82,19 @@ class DQN:
         batch = self.sample_memory()
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.FloatTensor(states)
-        actions = torch.LongTensor(actions).unsqueeze(1)  # Shape: [batch, 1]
-        rewards = torch.FloatTensor(rewards).unsqueeze(1)
-        next_states = torch.FloatTensor(next_states)
-        dones = torch.FloatTensor(dones).unsqueeze(1)
+        states = torch.FloatTensor(np.array(states)).unsqueeze(1).to(device())  # Shape: [batch, 1, 96, 96]
+        actions = torch.LongTensor(actions).unsqueeze(1).to(device())  # Shape: [batch, 1]
+        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(device())  # Shape: [batch, 1]
+        next_states = torch.FloatTensor(np.array(next_states)).unsqueeze(1).to(device())  # Shape: [batch, 1, 96, 96]
+        dones = torch.FloatTensor(dones).unsqueeze(1).to(device())
 
         # Current Q-values
         current_q = self.q_network(states).gather(1, actions)
 
         # Target Q-values
         with torch.no_grad():
-            max_next_q = self.target_network(next_states).max(1)[0].unsqueeze(1)
+            next_actions = self.q_network(next_states).argmax(1).unsqueeze(1)  # Shape: [batch, 1]
+            max_next_q = self.target_network(next_states).gather(1, next_actions)
             target_q = rewards + (self.gamma * max_next_q * (1 - dones))
 
         # Compute loss
