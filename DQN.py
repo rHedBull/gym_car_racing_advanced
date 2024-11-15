@@ -145,7 +145,7 @@ class DQN:
             return
 
         if filename is None:
-            filename = f"checkpoint_{self.steps_done}.pth"
+            filename = f"{self.logger.experiment_name}_checkpoint_{self.steps_done}.pth"
 
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         self.save_model(checkpoint_path)

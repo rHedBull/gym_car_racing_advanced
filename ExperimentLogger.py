@@ -6,9 +6,9 @@ import numpy as np
 
 class ExperimentLogger:
     def __init__(self,
-                 log_dir='logs',
-                 window_size=100,
-                 experiment_name=None):
+                 log_dir,
+                 experiment_name,
+                 window_size=100):
         """
         Initializes the ExperimentLogger.
 
@@ -17,10 +17,9 @@ class ExperimentLogger:
             window_size (int): Number of episodes for rolling window metrics.
             experiment_name (str): Optional name for the experiment.
         """
-        if experiment_name:
-            self.log_dir = os.path.join(log_dir, experiment_name)
-        else:
-            self.log_dir = log_dir
+        self.experiment_name = experiment_name
+
+        self.log_dir = log_dir
         os.makedirs(self.log_dir, exist_ok=True)
         self.writer = tf.summary.create_file_writer(log_dir)
         self.window_size = window_size

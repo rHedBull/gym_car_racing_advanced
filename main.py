@@ -12,7 +12,7 @@ eval_episodes = 10
 def main(args):
     env = gym.make("CarRacing-v2", render_mode="rgb-array", lap_complete_percent=0.95, domain_randomize=False, continuous=True)
 
-    logger = ExperimentLogger(args.log_dir)
+    logger = ExperimentLogger(args.log_dir, args.experiment_name)
     full_path = args.model_dir_path + args.experiment_name + ".pth"
     run(env, logger, full_path, args.hyperparameters_path)
 
