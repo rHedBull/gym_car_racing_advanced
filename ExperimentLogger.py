@@ -1,14 +1,12 @@
 import os
-import tensorflow as tf
-from collections import deque, defaultdict
+from collections import deque
+
 import numpy as np
+import tensorflow as tf
 
 
 class ExperimentLogger:
-    def __init__(self,
-                 log_dir,
-                 experiment_name,
-                 window_size=100):
+    def __init__(self, log_dir, experiment_name, window_size=100):
         """
         Initializes the ExperimentLogger.
 
@@ -48,9 +46,9 @@ class ExperimentLogger:
         """
         self.hyperparams = hyperparams
         for key, value in hyperparams.items():
-            self.writer.add_text('Hyperparameters', f"{key}: {value}\n")
+            self.writer.add_text("Hyperparameters", f"{key}: {value}\n")
         # Optionally, save hyperparameters to a file
-        with open(os.path.join(self.log_dir, 'hyperparameters.txt'), 'w') as f:
+        with open(os.path.join(self.log_dir, "hyperparameters.txt"), "w") as f:
             for key, value in hyperparams.items():
                 f.write(f"{key}: {value}\n")
 
@@ -82,7 +80,6 @@ class ExperimentLogger:
             tf.summary.scalar("gradient_norm_moving_avg", moving_avg_grad, step)
             tf.summary.scalar("buffer_size", buffer_size, step)
 
-
     def log_target_update(self, step):
         """
         Logs the occurrence of a target network update.
@@ -107,11 +104,10 @@ class ExperimentLogger:
         self.episode_rewards.append(total_reward)
         self.episode_steps.append(step_count)
 
-
         # Log per-episode metrics
         with self.writer.as_default():
-            tf.summary.scalar('Reward/Episode', total_reward, episode)
-            tf.summary.scalar('Steps/Episode', step_count, episode)
+            tf.summary.scalar("Reward/Episode", total_reward, episode)
+            tf.summary.scalar("Steps/Episode", step_count, episode)
 
         # Log rolling window metrics
         if len(self.episode_rewards) == self.window_size:
@@ -119,16 +115,20 @@ class ExperimentLogger:
             avg_steps = np.mean(self.episode_steps)
 
             with self.writer.as_default():
-                tf.summary.scalar('Reward/Average_Window', avg_reward, episode)
-                tf.summary.scalar('Steps/Average_Window', avg_steps, episode)
+                tf.summary.scalar("Reward/Average_Window", avg_reward, episode)
+                tf.summary.scalar("Steps/Average_Window", avg_steps, episode)
 
-    def log_evaluation_metrics(self, episode, step_count, total_reward, ):
-
+    def log_evaluation_metrics(
+        self,
+        episode,
+        step_count,
+        total_reward,
+    ):
         average_reward = total_reward / step_count
         with self.writer.as_default():
-            tf.summary.scalar('Eval steps/episode', step_count, episode)
-            tf.summary.scalar('Eval total reward/episode', total_reward, episode)
-            tf.summary.scalar('Eval avrg. reward', average_reward, episode)
+            tf.summary.scalar("Eval steps/episode", step_count, episode)
+            tf.summary.scalar("Eval total reward/episode", total_reward, episode)
+            tf.summary.scalar("Eval avrg. reward", average_reward, episode)
 
     def close(self):
         """

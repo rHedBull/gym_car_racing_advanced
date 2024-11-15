@@ -1,9 +1,10 @@
 import random
+from itertools import product
+
 import cv2
 from matplotlib import pyplot as plt
-from itertools import product
-from DQN import DQN
 
+from DQN import DQN
 
 # continuous there are 3 actions :
 #
@@ -19,16 +20,21 @@ break_options = [0, 1]
 
 state_size = 96 * 96
 
+
 class Agent:
     def __init__(self, hyperparameters, logger, model_path=None):
         self.reward = None
         self.state = None
 
         # Generate all possible combinations
-        action_combinations = list(product(steering_options, gas_options, break_options))
+        action_combinations = list(
+            product(steering_options, gas_options, break_options)
+        )
 
         # Assign a unique index to each combination
-        self.action_mapping = {idx: list(action) for idx, action in enumerate(action_combinations)}
+        self.action_mapping = {
+            idx: list(action) for idx, action in enumerate(action_combinations)
+        }
 
         action_size = len(self.action_mapping)
 
@@ -36,18 +42,13 @@ class Agent:
         if model_path is not None:
             self.DQN.load_model(model_path)
 
-
-
         self.reset()
 
     def reset(self):
         self.reward = 0
         self.state = "active"
 
-
-
     def get_action(self, observation):
-
         """Selects an action using the DQN's policy."""
         grey_obs = rgb_to_grayscale_opencv(observation)
         action_index = self.DQN.select_action(grey_obs)
@@ -61,7 +62,9 @@ class Agent:
         old_observation = rgb_to_grayscale_opencv(old_observation)
         new_observation = rgb_to_grayscale_opencv(new_observation)
         action_index = self.get_action_index(action)
-        self.DQN.store_transition(old_observation, action_index, reward, new_observation, done)
+        self.DQN.store_transition(
+            old_observation, action_index, reward, new_observation, done
+        )
 
     def update(self, reward):
         self.reward += reward
@@ -105,8 +108,8 @@ def rgb_to_grayscale_opencv(rgb):
     grayscale = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     return grayscale
 
-def print_obs(img, grey_obs):
 
+def print_obs(img, grey_obs):
     # Validate the image shape
     if img.ndim != 3 or img.shape[2] != 3:
         raise ValueError("Expected observation[0] to be an RGB image with 3 channels.")
@@ -117,14 +120,13 @@ def print_obs(img, grey_obs):
     plt.subplot(1, 2, 1)
     plt.imshow(img)
     plt.title("Original RGB Image")
-    plt.axis('off')  # Hide axis
+    plt.axis("off")  # Hide axis
 
     # Display the grayscale image
     plt.subplot(1, 2, 2)
-    plt.imshow(grey_obs, cmap='gray')
+    plt.imshow(grey_obs, cmap="gray")
     plt.title("Grayscale Image")
-    plt.axis('off')  # Hide axis
+    plt.axis("off")  # Hide axis
 
     plt.tight_layout()
     plt.show()
-

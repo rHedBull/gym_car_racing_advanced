@@ -1,16 +1,19 @@
-from QNetwork import QNetwork
+import os
 import random
 from collections import deque
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import os
-import numpy as np
+
+from QNetwork import QNetwork
 
 
 def device():
     """Returns the device to run computations on."""
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class DQN:
     def __init__(
@@ -19,42 +22,46 @@ class DQN:
         state_size,
         action_size,
         logger,
-        checkpoint_dir='checkpoint',
+        checkpoint_dir="checkpoint",
     ):
         self.state_size = state_size
         self.action_size = action_size
-        self.gamma = hyperparameters.get('gamma')
+        self.gamma = hyperparameters.get("gamma")
 
         # Epsilon parameters for ε-greedy policy
-        self.epsilon = hyperparameters.get('epsilon_start')
-        self.epsilon_min = hyperparameters.get('epsilon_end')
-        self.epsilon_decay = hyperparameters.get('epsilon_decay')
+        self.epsilon = hyperparameters.get("epsilon_start")
+        self.epsilon_min = hyperparameters.get("epsilon_end")
+        self.epsilon_decay = hyperparameters.get("epsilon_decay")
 
         # Replay memory
-        self.memory = deque(maxlen=hyperparameters.get('replay_buffer_size'))
-        self.batch_size = hyperparameters.get('batch_size')
+        self.memory = deque(maxlen=hyperparameters.get("replay_buffer_size"))
+        self.batch_size = hyperparameters.get("batch_size")
 
         # Device configuration
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Q-Network and Target Network
-        hidden_size = hyperparameters.get('hidden_size')
+        hidden_size = hyperparameters.get("hidden_size")
         self.q_network = QNetwork(state_size, action_size, hidden_size)
         self.target_network = QNetwork(state_size, action_size, hidden_size)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()  # Target network is not trained
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=hyperparameters.get('learning_rate'))
-        self.loss_fn = nn.MSELoss(reduction='mean')
+        self.optimizer = optim.Adam(
+            self.q_network.parameters(), lr=hyperparameters.get("learning_rate")
+        )
+        self.loss_fn = nn.MSELoss(reduction="mean")
 
         self.steps_done = 0
-        self.target_update_freq = hyperparameters.get('target_update_freq')
+        self.target_update_freq = hyperparameters.get("target_update_freq")
 
         self.logger = logger
 
         # Checkpoint directory
         self.checkpoint_dir = checkpoint_dir
-        os.makedirs(self.checkpoint_dir, exist_ok=True)  # Create directory if it doesn't exist
+        os.makedirs(
+            self.checkpoint_dir, exist_ok=True
+        )  # Create directory if it doesn't exist
 
     def select_action(self, state):
         """Selects an action using ε-greedy policy."""
@@ -77,15 +84,23 @@ class DQN:
     def train_step(self):
         """Performs a single training step."""
         if len(self.memory) < self.batch_size:
-            return 0 # Not enough samples to train
+            return 0  # Not enough samples to train
 
         batch = self.sample_memory()
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.FloatTensor(np.array(states)).unsqueeze(1).to(device())  # Shape: [batch, 1, 96, 96]
-        actions = torch.LongTensor(actions).unsqueeze(1).to(device())  # Shape: [batch, 1]
-        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(device())  # Shape: [batch, 1]
-        next_states = torch.FloatTensor(np.array(next_states)).unsqueeze(1).to(device())  # Shape: [batch, 1, 96, 96]
+        states = (
+            torch.FloatTensor(np.array(states)).unsqueeze(1).to(device())
+        )  # Shape: [batch, 1, 96, 96]
+        actions = (
+            torch.LongTensor(actions).unsqueeze(1).to(device())
+        )  # Shape: [batch, 1]
+        rewards = (
+            torch.FloatTensor(rewards).unsqueeze(1).to(device())
+        )  # Shape: [batch, 1]
+        next_states = (
+            torch.FloatTensor(np.array(next_states)).unsqueeze(1).to(device())
+        )  # Shape: [batch, 1, 96, 96]
         dones = torch.FloatTensor(dones).unsqueeze(1).to(device())
 
         # Current Q-values
@@ -93,7 +108,9 @@ class DQN:
 
         # Target Q-values
         with torch.no_grad():
-            next_actions = self.q_network(next_states).argmax(1).unsqueeze(1)  # Shape: [batch, 1]
+            next_actions = (
+                self.q_network(next_states).argmax(1).unsqueeze(1)
+            )  # Shape: [batch, 1]
             max_next_q = self.target_network(next_states).gather(1, next_actions)
             target_q = rewards + (self.gamma * max_next_q * (1 - dones))
 
@@ -111,7 +128,7 @@ class DQN:
             if param.grad is not None:
                 param_norm = param.grad.data.norm(2)
                 total_norm += param_norm.item() ** 2
-        total_norm = total_norm ** 0.5
+        total_norm = total_norm**0.5
 
         avg_q = current_q.mean().item()
 
@@ -125,7 +142,9 @@ class DQN:
             self.target_network.load_state_dict(self.q_network.state_dict())
             self.logger.log_target_update(self.steps_done)
 
-        self.logger.log_step_metrics(self.steps_done, loss.item(), avg_q, total_norm, len(self.memory))
+        self.logger.log_step_metrics(
+            self.steps_done, loss.item(), avg_q, total_norm, len(self.memory)
+        )
 
     def save_model(self, path):
         """Saves the Q-network's state."""
@@ -140,7 +159,11 @@ class DQN:
         """Saves the model and optimizer states."""
 
         # only save if at 25, 50, 75of episodes
-        checkpoints = [0.25 * total_episodes, 0.5 * total_episodes, 0.75 * total_episodes]
+        checkpoints = [
+            0.25 * total_episodes,
+            0.5 * total_episodes,
+            0.75 * total_episodes,
+        ]
         if current_episode not in checkpoints:
             return
 
@@ -156,9 +179,9 @@ class DQN:
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f"No checkpoint found at '{filepath}'")
         checkpoint = torch.load(filepath, map_location=self.device)
-        self.steps_done = checkpoint['steps_done']
-        self.epsilon = checkpoint['epsilon']
-        self.q_network.load_state_dict(checkpoint['q_network_state_dict'])
-        self.target_network.load_state_dict(checkpoint['target_network_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.steps_done = checkpoint["steps_done"]
+        self.epsilon = checkpoint["epsilon"]
+        self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
+        self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         print(f"Checkpoint loaded: {filepath}")

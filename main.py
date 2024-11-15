@@ -1,25 +1,31 @@
 import argparse
 import json
-import gymnasium as gym
 from datetime import datetime
-from Agent import Agent
 
+import gymnasium as gym
+
+from Agent import Agent
 from ExperimentLogger import ExperimentLogger
-from train import train, evaluate_agent
+from train import evaluate_agent, train
 
 eval_episodes = 10
 
+
 def main(args):
-    env = gym.make("CarRacing-v2", render_mode="rgb-array", lap_complete_percent=0.95, domain_randomize=False, continuous=True)
+    env = gym.make(
+        "CarRacing-v2",
+        render_mode="rgb-array",
+        lap_complete_percent=0.95,
+        domain_randomize=False,
+        continuous=True,
+    )
 
     logger = ExperimentLogger(args.log_dir, args.experiment_name)
     full_path = args.model_dir_path + args.experiment_name + ".pth"
     run(env, logger, full_path, args.hyperparameters_path)
 
 
-
 def run(env, logger, model_path, hyperparameters):
-
     with open(hyperparameters, "r") as f:
         hyperparameters = json.load(f)
     agent = Agent(hyperparameters, logger)
@@ -30,6 +36,7 @@ def run(env, logger, model_path, hyperparameters):
 
     logger.close()
     env.close()
+
 
 if __name__ == "__main__":
     # Set up argument parsing for command-line arguments
@@ -65,4 +72,4 @@ if __name__ == "__main__":
     arg_parser = parser.parse_args()
 
     main(arg_parser)
-    #eval_model()
+    # eval_model()
