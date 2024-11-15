@@ -1,15 +1,15 @@
 import gymnasium as gym
 from datetime import datetime
-
+import time
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
 
-num_episodes = 10
+num_episodes = 5
 
 start_episode_length = 100
-performance_threshold = 10
+performance_threshold = 1
 episode_length_increment = 100
-max_steps_per_episode = 100
+max_steps_per_episode = 1000
 
 eval_episodes = 30
 
@@ -28,6 +28,7 @@ def main():
 def train(env, agent, logger):
     steps_per_episode = start_episode_length
     total_steps_taken = 0
+    training_start_time = time.time()
 
     for episode in range(num_episodes):
 
@@ -70,8 +71,14 @@ def train(env, agent, logger):
 
         steps_per_episode = adjust_max_steps(average_reward, performance_threshold, step, episode_length_increment)
 
+    training_end_time = time.time()
+
+    total_training_time = training_end_time - training_start_time
     print("TRAINING COMPLETE")
     print(f"Total steps taken: {total_steps_taken}")
+    print(f"Average steps per Episode: {total_steps_taken / num_episodes}")
+    print(f"Training time: {total_training_time:.2f} seconds")
+    print(f"steps/seconds: {total_steps_taken / total_training_time:.2f}")
 
 def run(env, logger, model_path):
 
