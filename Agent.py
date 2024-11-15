@@ -81,6 +81,9 @@ class Agent:
                 return idx
         return None
 
+    def save_checkpoint(self, current_episode, total_episodes, checkpoint_path=None):
+        self.DQN.save_checkpoint(current_episode, total_episodes, checkpoint_path)
+
 
 def get_random_action():
     return [random.uniform(-1, 1), random.uniform(0, 1), random.uniform(0, 1)]

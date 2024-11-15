@@ -66,33 +66,6 @@ class DQN:
                 q_values = self.q_network(state)
             return q_values.argmax().item()
 
-    def save_checkpoint(self, filename=None):
-        """Saves the model and optimizer states."""
-        if filename is None:
-            filename = f"checkpoint_{self.steps_done}.pth"
-        checkpoint_path = os.path.join(self.checkpoint_dir, filename)
-        checkpoint = {
-            'steps_done': self.steps_done,
-            'epsilon': self.epsilon,
-            'q_network_state_dict': self.q_network.state_dict(),
-            'target_network_state_dict': self.target_network.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-        }
-        torch.save(checkpoint, checkpoint_path)
-        print(f"Checkpoint saved: {checkpoint_path}")
-
-    def load_checkpoint(self, filepath):
-        """Loads the model and optimizer states."""
-        if not os.path.isfile(filepath):
-            raise FileNotFoundError(f"No checkpoint found at '{filepath}'")
-        checkpoint = torch.load(filepath, map_location=self.device)
-        self.steps_done = checkpoint['steps_done']
-        self.epsilon = checkpoint['epsilon']
-        self.q_network.load_state_dict(checkpoint['q_network_state_dict'])
-        self.target_network.load_state_dict(checkpoint['target_network_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        print(f"Checkpoint loaded: {filepath}")
-
     def store_transition(self, state, action, reward, next_state, done):
         """Stores a transition in the replay buffer."""
         self.memory.append((state, action, reward, next_state, done))
@@ -162,3 +135,30 @@ class DQN:
         """Loads the Q-network's state."""
         self.q_network.load_state_dict(torch.load(path))
         self.target_network.load_state_dict(self.q_network.state_dict())
+
+    def save_checkpoint(self, current_episode, total_episodes, filename=None):
+        """Saves the model and optimizer states."""
+
+        # only save if at 25, 50, 75of episodes
+        checkpoints = [0.25 * total_episodes, 0.5 * total_episodes, 0.75 * total_episodes]
+        if current_episode not in checkpoints:
+            return
+
+        if filename is None:
+            filename = f"checkpoint_{self.steps_done}.pth"
+
+        checkpoint_path = os.path.join(self.checkpoint_dir, filename)
+        self.save_model(checkpoint_path)
+        print(f"Checkpoint saved: {checkpoint_path}")
+
+    def load_checkpoint(self, filepath):
+        """Loads the model and optimizer states."""
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"No checkpoint found at '{filepath}'")
+        checkpoint = torch.load(filepath, map_location=self.device)
+        self.steps_done = checkpoint['steps_done']
+        self.epsilon = checkpoint['epsilon']
+        self.q_network.load_state_dict(checkpoint['q_network_state_dict'])
+        self.target_network.load_state_dict(checkpoint['target_network_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        print(f"Checkpoint loaded: {filepath}")
