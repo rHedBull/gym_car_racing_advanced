@@ -15,47 +15,40 @@ def device():
 class DQN:
     def __init__(
         self,
-        logger,
+        hyperparameters,
         state_size,
         action_size,
-        hidden_size=64,
-        learning_rate=1e-3,
-        gamma=0.99,
-        epsilon_start=1.0,
-        epsilon_end=0.01,
-        epsilon_decay=0.999934,
-        buffer_size=10000,
-        batch_size=64,
-        target_update_freq=1000,
+        logger,
         checkpoint_dir='checkpoint',
     ):
         self.state_size = state_size
         self.action_size = action_size
-        self.gamma = gamma
+        self.gamma = hyperparameters.get('gamma')
 
         # Epsilon parameters for ε-greedy policy
-        self.epsilon = epsilon_start
-        self.epsilon_min = epsilon_end
-        self.epsilon_decay = epsilon_decay
+        self.epsilon = hyperparameters.get('epsilon_start')
+        self.epsilon_min = hyperparameters.get('epsilon_end')
+        self.epsilon_decay = hyperparameters.get('epsilon_decay')
 
         # Replay memory
-        self.memory = deque(maxlen=buffer_size)
-        self.batch_size = batch_size
+        self.memory = deque(maxlen=hyperparameters.get('replay_buffer_size'))
+        self.batch_size = hyperparameters.get('batch_size')
 
         # Device configuration
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Q-Network and Target Network
+        hidden_size = hyperparameters.get('hidden_size')
         self.q_network = QNetwork(state_size, action_size, hidden_size)
         self.target_network = QNetwork(state_size, action_size, hidden_size)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()  # Target network is not trained
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=hyperparameters.get('learning_rate'))
         self.loss_fn = nn.MSELoss(reduction='mean')
 
         self.steps_done = 0
-        self.target_update_freq = target_update_freq
+        self.target_update_freq = hyperparameters.get('target_update_freq')
 
         self.logger = logger
 

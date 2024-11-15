@@ -20,12 +20,9 @@ break_options = [0, 1]
 state_size = 96 * 96
 
 class Agent:
-    def __init__(self, logger):
+    def __init__(self, hyperparameters, logger, model_path=None):
         self.reward = None
         self.state = None
-        self.action_probabilities = {
-            "none": 0.0,
-        }
 
         # Generate all possible combinations
         action_combinations = list(product(steering_options, gas_options, break_options))
@@ -34,7 +31,12 @@ class Agent:
         self.action_mapping = {idx: list(action) for idx, action in enumerate(action_combinations)}
 
         action_size = len(self.action_mapping)
-        self.DQN = DQN(logger, state_size, action_size)
+
+        self.DQN = DQN(hyperparameters, state_size, action_size, logger)
+        if model_path is not None:
+            self.DQN.load_model(model_path)
+
+
 
         self.reset()
 
