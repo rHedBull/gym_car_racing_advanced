@@ -20,7 +20,7 @@ break_options = [0, 1]
 state_size = 96 * 96
 
 class Agent:
-    def __init__(self):
+    def __init__(self, logger):
         self.reward = None
         self.state = None
         self.action_probabilities = {
@@ -34,7 +34,7 @@ class Agent:
         self.action_mapping = {idx: list(action) for idx, action in enumerate(action_combinations)}
 
         action_size = len(self.action_mapping)
-        self.DQN = DQN(state_size, action_size)
+        self.DQN = DQN(logger, state_size, action_size)
 
         self.reset()
 
