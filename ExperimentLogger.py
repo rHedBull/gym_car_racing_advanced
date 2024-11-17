@@ -162,7 +162,8 @@ class ExperimentLogger:
 
     def create_gif(self, gif_name="evaluation.gif", max_frames=100):
         # Limit the number of frames to reduce memory usage
-        frames = self.image_frames[-max_frames:] if len(self.image_frames) > max_frames else self.image_frames
+        n = max(1, len(self.image_frames) // max_frames)
+        frames = self.image_frames[::n]
 
         # Create the GIF
         gif_path = os.path.join(self.log_dir, gif_name)
