@@ -5,12 +5,11 @@ import gymnasium as gym
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
 
-num_episodes = 100
-
-start_episode_length = 10
+start_episode_length = 100
 performance_threshold = 1
 episode_length_increment = 100
-max_steps_per_episode = 1000
+max_steps_per_episode = 500
+max_total_steps = 1000
 
 
 def train(env, agent, logger):
@@ -18,7 +17,11 @@ def train(env, agent, logger):
     total_steps_taken = 0
     training_start_time = time.time()
 
-    for episode in range(num_episodes):
+    episode = 0
+    print("STARTING TRAINING")
+    while total_steps_taken < max_total_steps:
+        episode += 1
+
         # run the game loop
         step = 0
         done = False
@@ -32,9 +35,6 @@ def train(env, agent, logger):
         while not done and step < steps_per_episode:
             if env.render_mode == "human":
                 env.render()
-
-            # if total_reward < cut_off_reward:
-            #     continue
 
             action = agent.get_action(old_observation)
 
@@ -52,7 +52,7 @@ def train(env, agent, logger):
         total_steps_taken += step
         total_episode_reward = sum(episode_rewards)
         average_reward = total_episode_reward / len(episode_rewards)
-        agent.save_checkpoint(episode, num_episodes)
+        agent.save_checkpoint(total_steps_taken, max_total_steps)
         logger.log_episode_metrics(episode, step, total_episode_reward)
 
         print(
@@ -68,7 +68,7 @@ def train(env, agent, logger):
     total_training_time = training_end_time - training_start_time
     print("TRAINING COMPLETE")
     print(f"Total steps taken: {total_steps_taken}")
-    print(f"Average steps per Episode: {total_steps_taken / num_episodes}")
+    print(f"Average steps per Episode: {total_steps_taken / episode}")
     print(f"Training time: {total_training_time:.2f} seconds")
     print(f"steps/seconds: {total_steps_taken / total_training_time:.2f}")
 
