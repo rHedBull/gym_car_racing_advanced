@@ -155,16 +155,16 @@ class DQN:
         self.q_network.load_state_dict(torch.load(path))
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-    def save_checkpoint(self, current_episode, total_episodes, filename=None):
+    def save_checkpoint(self, current, total, filename=None):
         """Saves the model and optimizer states."""
 
         # only save if at 25, 50, 75of episodes
         checkpoints = [
-            0.25 * total_episodes,
-            0.5 * total_episodes,
-            0.75 * total_episodes,
+            0.25 * total,
+            0.5 * total,
+            0.75 * total,
         ]
-        if current_episode not in checkpoints:
+        if current not in checkpoints:
             return
 
         if filename is None:
