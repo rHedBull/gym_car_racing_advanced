@@ -1,8 +1,24 @@
 import os
 from collections import deque
 
+import cv2
+import imageio
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
+
+
+def debug_display_image(image, step):
+    """
+    Helper function to display or save the image for debugging.
+    """
+    plt.imshow(image)  # Assuming `image` is in RGB format
+    plt.title(f"Step: {step}")
+    plt.axis('off')  # Remove axes for better visualization
+    plt.show()  # Display the image inline
+
+    # Optionally, save the image for offline debugging
+    plt.savefig(f"debug_image_step_{step}.png")
 
 
 class ExperimentLogger:
@@ -37,6 +53,9 @@ class ExperimentLogger:
         # Target network updates
         self.target_updates = 0
 
+        # Image logging
+        self.image_frames = []
+
     def log_hyperparameters(self, hyperparams):
         """
         Logs the hyperparameters of the experiment.
@@ -44,13 +63,11 @@ class ExperimentLogger:
         Args:
             hyperparams (dict): Dictionary of hyperparameters.
         """
-        self.hyperparams = hyperparams
-        for key, value in hyperparams.items():
-            self.writer.add_text("Hyperparameters", f"{key}: {value}\n")
-        # Optionally, save hyperparameters to a file
-        with open(os.path.join(self.log_dir, "hyperparameters.txt"), "w") as f:
-            for key, value in hyperparams.items():
-                f.write(f"{key}: {value}\n")
+        # json to text again:
+        # TODO: figure out best way to log what hyperparameters are being used
+        #with self.writer.as_default():
+        #    tf.summary.text("Hyperparameters", f"{key}: {value}", step=0)
+        pass
 
     def log_step_metrics(self, step, loss, avg_q, gradient_norm, buffer_size):
         """
@@ -129,6 +146,57 @@ class ExperimentLogger:
             tf.summary.scalar("Eval steps/episode", step_count, episode)
             tf.summary.scalar("Eval total reward/episode", total_reward, episode)
             tf.summary.scalar("Eval avrg. reward", average_reward, episode)
+
+    def log_image(self, rgb_array, step):
+
+        image_with_text = self._add_step_text(rgb_array, step)
+
+        # transform observation to image
+        tensor_img = tf.convert_to_tensor(image_with_text, dtype=tf.uint8)
+        tensor_img = tf.expand_dims(tensor_img, 0)
+
+        self.image_frames.append(image_with_text)
+
+        with self.writer.as_default():
+            tf.summary.image("Step: " + str(step), tensor_img, step)
+
+    def create_gif(self, gif_name="evaluation.gif", max_frames=100):
+        # Limit the number of frames to reduce memory usage
+        frames = self.image_frames[-max_frames:] if len(self.image_frames) > max_frames else self.image_frames
+
+        # Create the GIF
+        gif_path = os.path.join(self.log_dir, gif_name)
+        imageio.mimsave(gif_path, frames, duration=0.1)  # duration specifies time per frame
+
+        print(f"Saved GIF to {gif_path}")
+
+        # Clear the frames list to save memory
+        self.image_frames = []
+
+    def _add_step_text(self, image, step):
+        """
+        Adds the step number as text onto the image.
+        """
+        # Ensure the image is in the right format (uint8)
+        if image.dtype != np.uint8:
+            image = (image * 255).astype(np.uint8)
+
+        # Convert to BGR format for OpenCV if image is RGB
+        if image.shape[-1] == 3:  # Assuming last dimension is channels
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        # Add text (step number) to the image
+        text = f"Step: {step}"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1
+        color = (255, 255, 255)  # White color
+        thickness = 2
+        position = (10, 30)  # Top-left corner of the image
+        cv2.putText(image, text, position, font, font_scale, color, thickness, lineType=cv2.LINE_AA)
+
+        # Convert back to RGB if needed
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image
 
     def close(self):
         """

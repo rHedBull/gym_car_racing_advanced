@@ -8,7 +8,8 @@ from Agent import Agent
 from ExperimentLogger import ExperimentLogger
 from train import evaluate_agent, train
 
-eval_episodes = 10
+eval_episodes = 2
+eval_steps = 100
 
 
 def main(args):
@@ -32,7 +33,7 @@ def run(env, logger, model_path, hyperparameters):
 
     train(env, agent, logger)
     agent.save_model(model_path)
-    evaluate_agent(agent, env, logger, 10, eval_episodes)
+    evaluate_agent(agent, logger, eval_episodes, eval_steps, True)
 
     logger.close()
     env.close()

@@ -1,6 +1,6 @@
 import time
 
-import gym
+import gymnasium as gym
 
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
@@ -81,10 +81,18 @@ def adjust_max_steps(average_reward, threshold, last_steps, max_steps_increment)
     return last_steps
 
 
-def evaluate_agent(agent, env, logger, num_episodes=10, eval_steps=200, render=False):
+def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False):
     original_epsilon = agent.DQN.epsilon
     agent.DQN.epsilon = 0.0  # Disable exploration
     render_episode = False
+
+    env = gym.make(
+        "CarRacing-v2",
+        render_mode="rgb_array",
+        lap_complete_percent=0.95,
+        domain_randomize=False,
+        continuous=True,
+    )
 
     print("STARTING EVALUATION")
     for episode in range(num_episodes):
@@ -105,7 +113,10 @@ def evaluate_agent(agent, env, logger, num_episodes=10, eval_steps=200, render=F
 
         while not done and step < eval_steps:
             if render_episode:
-                env.render()
+                # log the image
+                rgb_array = env.render()
+                logger.log_image(rgb_array, step)
+
 
             action = agent.get_action(old_observation)
 
@@ -126,6 +137,8 @@ def evaluate_agent(agent, env, logger, num_episodes=10, eval_steps=200, render=F
             f"Evaluation Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"
         )
 
+    if render_episode:
+        logger.create_gif()
     agent.DQN.epsilon = original_epsilon  # Restore original epsilon
     avg_reward = sum(episode_rewards) / num_episodes
     print(f"Average Evaluation Reward over {num_episodes} episodes: {avg_reward}")
@@ -135,14 +148,7 @@ def evaluate_agent(agent, env, logger, num_episodes=10, eval_steps=200, render=F
 def eval_model():
     logger = ExperimentLogger("logs/eval_performance")
     model_path = "models/20241115-181836_model"
-    env = gym.make(
-        "CarRacing-v2",
-        render_mode="human",
-        lap_complete_percent=0.95,
-        domain_randomize=False,
-        continuous=True,
-    )
     agent = Agent(logger, model_path)
     agent.load_model(model_path)
 
-    evaluate_agent(agent, env, logger, 1, 400, True)
+    evaluate_agent(agent, logger, 1, 400, True)
