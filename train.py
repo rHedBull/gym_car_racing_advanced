@@ -60,15 +60,6 @@ def train(env, agent, logger):
             f"Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"
         )
 
-        wandb.log({
-            "Episode": episode,
-            "Total Reward": total_episode_reward,
-            "Average Reward": average_reward,
-            "Steps": step,
-            "Epsilon": agent.DQN.epsilon,
-            "Total Steps Taken": total_steps_taken
-        })
-
         steps_per_episode = adjust_max_steps(
             average_reward, performance_threshold, step, episode_length_increment
         )
@@ -141,7 +132,7 @@ def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False)
         total_episode_reward = sum(episode_rewards)
         average_reward = total_episode_reward / len(episode_rewards)
 
-        logger.log_evaluation_metrics(episode, step, total_episode_reward)
+        logger.log_evaluation_metrics(step, total_episode_reward)
 
         print(
             f"Evaluation Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"

@@ -14,15 +14,14 @@ eval_steps = 100
 
 
 def main(args):
+    with open(args.hyperparameters_path, "r") as f:
+        hyperparameters = json.load(f)
+
     wandb.init(
         project="gymnasium_car_racing",  # Replace with your project name
         name=args.experiment_name,
-        config={
-            "hyperparameters_path": args.hyperparameters_path,
-            "model_dir_path": args.model_dir_path,
-            "log_dir": args.log_dir,
-            # Add other relevant hyperparameters if needed
-        }
+        config=hyperparameters,
+        mode="online"
     )
 
     config = wandb.config
@@ -37,14 +36,13 @@ def main(args):
 
     logger = ExperimentLogger(args.log_dir, args.experiment_name)
     full_path = args.model_dir_path + args.experiment_name + ".pth"
-    run(env, logger, full_path, args.hyperparameters_path)
+    run(env, logger, full_path, hyperparameters)
 
     wandb.finish()
 
 
 def run(env, logger, model_path, hyperparameters):
-    with open(hyperparameters, "r") as f:
-        hyperparameters = json.load(f)
+
     agent = Agent(hyperparameters, logger)
 
     wandb.config.update(hyperparameters)
@@ -74,7 +72,7 @@ if __name__ == "__main__":
         help="Path to the directory where the finished model will be stored",
     )
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    default_experiment_name = "experiment_" + current_time + ".pth"
+    default_experiment_name = "experiment_" + current_time
     parser.add_argument(
         "--experiment_name",
         type=str,

@@ -143,7 +143,7 @@ class DQN:
             self.logger.log_target_update(self.steps_done)
 
         self.logger.log_step_metrics(
-            self.steps_done, loss.item(), avg_q, total_norm, len(self.memory)
+            loss.item(), avg_q, total_norm
         )
 
     def save_model(self, path):

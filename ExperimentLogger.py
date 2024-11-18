@@ -5,6 +5,8 @@ import cv2
 import imageio
 import numpy as np
 import tensorflow as tf
+
+import wandb
 from matplotlib import pyplot as plt
 
 
@@ -56,20 +58,7 @@ class ExperimentLogger:
         # Image logging
         self.image_frames = []
 
-    def log_hyperparameters(self, hyperparams):
-        """
-        Logs the hyperparameters of the experiment.
-
-        Args:
-            hyperparams (dict): Dictionary of hyperparameters.
-        """
-        # json to text again:
-        # TODO: figure out best way to log what hyperparameters are being used
-        #with self.writer.as_default():
-        #    tf.summary.text("Hyperparameters", f"{key}: {value}", step=0)
-        pass
-
-    def log_step_metrics(self, step, loss, avg_q, gradient_norm, buffer_size):
+    def log_step_metrics(self, loss, avg_q, gradient_norm):
         """
         Logs step-based metrics at defined intervals.
 
@@ -79,6 +68,7 @@ class ExperimentLogger:
             avg_q (float): Average Q-value.
             gradient_norm (float): Norm of gradients.
             buffer_size (int): Current size of the replay buffer.
+
         """
         self.loss_history.append(loss)
         self.q_value_history.append(avg_q)
@@ -88,16 +78,25 @@ class ExperimentLogger:
         moving_avg_q = np.mean(self.q_value_history)
         moving_avg_grad = np.mean(self.gradient_norms)
 
-        with self.writer.as_default():
-            tf.summary.scalar("loss", loss, step)
-            tf.summary.scalar("average_loss", moving_avg_loss, step)
-            tf.summary.scalar("average_q", avg_q, step)
-            tf.summary.scalar("average_q_moving_avg", moving_avg_q, step)
-            tf.summary.scalar("gradient_norm", gradient_norm, step)
-            tf.summary.scalar("gradient_norm_moving_avg", moving_avg_grad, step)
-            tf.summary.scalar("buffer_size", buffer_size, step)
+        wandb.log({
+            "step/loss": loss,
+            "step/average_loss": moving_avg_loss,
+            "step/average_q": avg_q,
+            "step/average_q_moving_avg": moving_avg_q,
+            "step/gradient_norm": gradient_norm,
+            "step/gradient_norm_moving_avg": moving_avg_grad
+        })
 
-    def log_target_update(self, step):
+        # with self.writer.as_default():
+        #     tf.summary.scalar("loss", loss, step)
+        #     tf.summary.scalar("average_loss", moving_avg_loss, step)
+        #     tf.summary.scalar("average_q", avg_q, step)
+        #     tf.summary.scalar("average_q_moving_avg", moving_avg_q, step)
+        #     tf.summary.scalar("gradient_norm", gradient_norm, step)
+        #     tf.summary.scalar("gradient_norm_moving_avg", moving_avg_grad, step)
+        #     tf.summary.scalar("buffer_size", buffer_size, step)
+
+    def log_target_update(self):
         """
         Logs the occurrence of a target network update.
 
@@ -105,47 +104,66 @@ class ExperimentLogger:
             step (int): Current training step.
         """
         self.target_updates += 1
-        with self.writer.as_default():
-            tf.summary.scalar("TargetNetwork/Updates", self.target_updates, step)
 
-    def log_episode_metrics(self, episode, step_count, total_reward):
+        wandb.log({
+            "TargetNetwork/Updates": self.target_updates
+        })
+        # with self.writer.as_default():
+        #     tf.summary.scalar("TargetNetwork/Updates", self.target_updates, step)
+
+    def log_episode_metrics(self, step_count, total_reward, epsilon, buffer_size):
         """
         Logs episode-based metrics.
 
         Args:
-            episode (int): Current episode number.
-            total_reward (float): Total reward accumulated in the episode.
-            step_count (int): Number of steps taken in the episode.
-            success (bool): Whether the episode was successful.
+            :param buffer_size:
+            :param total_reward:
+            :param step_count:
+            :param epsilon:
         """
         self.episode_rewards.append(total_reward)
         self.episode_steps.append(step_count)
+        average_reward = total_reward / step_count
 
-        # Log per-episode metrics
-        with self.writer.as_default():
-            tf.summary.scalar("Reward/Episode", total_reward, episode)
-            tf.summary.scalar("Steps/Episode", step_count, episode)
+        wandb.log({
+            "episode/total_reward": total_reward,
+            "episode/average_reward": average_reward,
+            "episode/steps": step_count,
+            "episode/epsilon": epsilon,
+            "episode/buffer_size": buffer_size
+        })
 
-        # Log rolling window metrics
-        if len(self.episode_rewards) == self.window_size:
-            avg_reward = np.mean(self.episode_rewards)
-            avg_steps = np.mean(self.episode_steps)
-
-            with self.writer.as_default():
-                tf.summary.scalar("Reward/Average_Window", avg_reward, episode)
-                tf.summary.scalar("Steps/Average_Window", avg_steps, episode)
+        # # Log per-episode metrics
+        # with self.writer.as_default():
+        #     tf.summary.scalar("Reward/Episode", total_reward, episode)
+        #     tf.summary.scalar("Steps/Episode", step_count, episode)
+        #
+        # # Log rolling window metrics
+        # if len(self.episode_rewards) == self.window_size:
+        #     avg_reward = np.mean(self.episode_rewards)
+        #     avg_steps = np.mean(self.episode_steps)
+        #
+        #     with self.writer.as_default():
+        #         tf.summary.scalar("Reward/Average_Window", avg_reward, episode)
+        #         tf.summary.scalar("Steps/Average_Window", avg_steps, episode)
 
     def log_evaluation_metrics(
         self,
-        episode,
         step_count,
         total_reward,
     ):
         average_reward = total_reward / step_count
-        with self.writer.as_default():
-            tf.summary.scalar("Eval steps/episode", step_count, episode)
-            tf.summary.scalar("Eval total reward/episode", total_reward, episode)
-            tf.summary.scalar("Eval avrg. reward", average_reward, episode)
+
+        wandb.log({
+            "eval/total_reward": total_reward,
+            "eval/average_reward": average_reward
+        })
+
+
+        # with self.writer.as_default():
+        #     tf.summary.scalar("Eval steps/episode", step_count, episode)
+        #     tf.summary.scalar("Eval total reward/episode", total_reward, episode)
+        #     tf.summary.scalar("Eval avrg. reward", average_reward, episode)
 
     def log_image(self, rgb_array, step):
 
@@ -169,7 +187,10 @@ class ExperimentLogger:
         gif_path = os.path.join(self.log_dir, gif_name)
         imageio.mimsave(gif_path, frames, duration=0.1)  # duration specifies time per frame
 
-        print(f"Saved GIF to {gif_path}")
+        wandb.log({
+            "Episode/GIF": wandb.Video(gif_path, format="gif")
+        })
+        os.remove(gif_path)
 
         # Clear the frames list to save memory
         self.image_frames = []
