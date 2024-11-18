@@ -85,7 +85,7 @@ class ExperimentLogger:
             "step/average_q_moving_avg": moving_avg_q,
             "step/gradient_norm": gradient_norm,
             "step/gradient_norm_moving_avg": moving_avg_grad
-        })
+        }, step=step)
 
         # with self.writer.as_default():
         #     tf.summary.scalar("loss", loss, step)
@@ -111,11 +111,12 @@ class ExperimentLogger:
         # with self.writer.as_default():
         #     tf.summary.scalar("TargetNetwork/Updates", self.target_updates, step)
 
-    def log_episode_metrics(self, step_count, total_reward, epsilon, buffer_size):
+    def log_episode_metrics(self, step,  step_count, total_reward, epsilon, buffer_size):
         """
         Logs episode-based metrics.
 
         Args:
+            :param step:
             :param buffer_size:
             :param total_reward:
             :param step_count:

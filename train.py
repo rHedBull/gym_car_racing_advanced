@@ -49,12 +49,12 @@ def train(env, agent, logger):
             episode_rewards.append(reward)
             old_observation = new_observation
             step += 1
+            total_steps_taken += 1
 
-        total_steps_taken += step
         total_episode_reward = sum(episode_rewards)
         average_reward = total_episode_reward / len(episode_rewards)
         agent.save_checkpoint(total_steps_taken, max_total_steps)
-        logger.log_episode_metrics(episode, step, total_episode_reward)
+        logger.log_episode_metrics(total_steps_taken, step, total_episode_reward, agent.DQN.epsilon, len(agent.DQN.memory))
 
         print(
             f"Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"

@@ -24,6 +24,7 @@ class DQN:
         logger,
         checkpoint_dir="checkpoint",
     ):
+        self.training_steps_done = 0
         self.state_size = state_size
         self.action_size = action_size
         self.gamma = hyperparameters.get("gamma")
@@ -83,6 +84,8 @@ class DQN:
 
     def train_step(self):
         """Performs a single training step."""
+        self.steps_done += 1
+
         if len(self.memory) < self.batch_size:
             return 0  # Not enough samples to train
 
@@ -137,13 +140,13 @@ class DQN:
             self.epsilon *= self.epsilon_decay
 
         # Update target network
-        self.steps_done += 1
-        if self.steps_done % self.target_update_freq == 0:
+        self.training_steps_done += 1
+        if self.training_steps_done % self.target_update_freq == 0:
             self.target_network.load_state_dict(self.q_network.state_dict())
             self.logger.log_target_update(self.steps_done)
 
         self.logger.log_step_metrics(
-            loss.item(), avg_q, total_norm
+            self.steps_done, loss.item(), avg_q, total_norm
         )
 
     def save_model(self, path):
