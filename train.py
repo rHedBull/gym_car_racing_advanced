@@ -1,6 +1,7 @@
 import time
 
 import gymnasium as gym
+import wandb
 
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
@@ -58,6 +59,15 @@ def train(env, agent, logger):
         print(
             f"Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"
         )
+
+        wandb.log({
+            "Episode": episode,
+            "Total Reward": total_episode_reward,
+            "Average Reward": average_reward,
+            "Steps": step,
+            "Epsilon": agent.DQN.epsilon,
+            "Total Steps Taken": total_steps_taken
+        })
 
         steps_per_episode = adjust_max_steps(
             average_reward, performance_threshold, step, episode_length_increment
