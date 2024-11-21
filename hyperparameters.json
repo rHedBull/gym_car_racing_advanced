@@ -3,10 +3,17 @@
   "gamma": 0.99,
   "epsilon_start": 1.0,
   "epsilon_end": 0.01,
-  "epsilon_decay": 0.995,
+  "epsilon_decay": 0.99978,
   "replay_buffer_size": 10000,
   "batch_size": 64,
   "target_update_freq": 1000,
   "max_gradient_norm": 1.0,
-  "hidden_size": 64
+  "hidden_size": 64,
+  "start_episode_length": 100,
+  "performance_threshold": 0.5,
+  "episode_length_increment": 100,
+  "max_steps_per_episode": 500,
+  "max_total_steps": 2000,
+  "eval_episodes" : 2,
+  "eval_steps" : 400
 }

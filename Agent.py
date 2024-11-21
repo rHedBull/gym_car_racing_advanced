@@ -6,13 +6,6 @@ from matplotlib import pyplot as plt
 
 from DQN import DQN
 
-# continuous there are 3 actions :
-#
-# 0: steering, -1 is full left, +1 is full right
-#
-# 1: gas
-#
-# 2: breaking
 
 steering_options = [-1.0, -0.5, 0.0, 0.5, 1.0]
 gas_options = [0, 1]
@@ -22,7 +15,7 @@ state_size = 96 * 96
 
 
 class Agent:
-    def __init__(self, hyperparameters, logger, model_path=None):
+    def __init__(self, hyperparameters, logger, old_model_data=None):
         self.reward = None
         self.state = None
 
@@ -39,8 +32,17 @@ class Agent:
         action_size = len(self.action_mapping)
 
         self.DQN = DQN(hyperparameters, state_size, action_size, logger)
-        if model_path is not None:
-            self.DQN.load_model(model_path)
+        if old_model_data is not None:
+            if action_size != old_model_data.get("action_size"):
+                raise ValueError(
+                    "The action size of the old model does not match the current action size."
+                )
+            if state_size != old_model_data.get("state_size"):
+                raise ValueError(
+                    "The state_size of the old model does not match the current state size."
+                )
+
+            self.DQN.load_model(old_model_data)
 
         self.reset()
 
@@ -72,11 +74,8 @@ class Agent:
     def train(self):
         return self.DQN.train_step()
 
-    def save_model(self, path):
-        self.DQN.save_model(path)
-
-    def load_model(self, path):
-        self.DQN.load_model(path)
+    def save_model(self, path, log_to_wandb=False, artifact_name=None):
+        self.DQN.save_model(path, log_to_wandb, artifact_name)
 
     def get_action_index(self, action):
         for idx, act in self.action_mapping.items():

@@ -1,25 +1,19 @@
 import time
-
 import gymnasium as gym
-import wandb
 
-from Agent import Agent
-from ExperimentLogger import ExperimentLogger
-
-start_episode_length = 100
-performance_threshold = 1
-episode_length_increment = 100
-max_steps_per_episode = 500
-max_total_steps = 1000
-
-
-def train(env, agent, logger):
-    steps_per_episode = start_episode_length
-    total_steps_taken = 0
+def train(env, agent, logger, hyperparameters):
+    steps_per_episode = hyperparameters.get("start_episode_length")
     training_start_time = time.time()
+    max_total_steps = hyperparameters.get("max_total_steps")
+    total_steps_taken = agent.DQN.steps_done # 0 if not continuing a training
 
-    episode = 0
+    if total_steps_taken >= max_total_steps:
+        print("Agent has already trained for the maximum number of steps")
+        return
+
+    episode = logger.total_episodes # 0 if not continuing a training
     print("STARTING TRAINING")
+    print("planning to take {} steps".format(max_total_steps - total_steps_taken))
     while total_steps_taken < max_total_steps:
         episode += 1
 
@@ -47,13 +41,15 @@ def train(env, agent, logger):
             agent.train()
 
             episode_rewards.append(reward)
+            #logger.log_action(total_steps_taken, action)
+
             old_observation = new_observation
             step += 1
             total_steps_taken += 1
 
         total_episode_reward = sum(episode_rewards)
         average_reward = total_episode_reward / len(episode_rewards)
-        agent.save_checkpoint(total_steps_taken, max_total_steps)
+        #agent.save_checkpoint(total_steps_taken, max_total_steps, logger.checkpoint_path)
         logger.log_episode_metrics(total_steps_taken, step, total_episode_reward, agent.DQN.epsilon, len(agent.DQN.memory))
 
         print(
@@ -61,7 +57,7 @@ def train(env, agent, logger):
         )
 
         steps_per_episode = adjust_max_steps(
-            average_reward, performance_threshold, step, episode_length_increment
+            average_reward, hyperparameters.get("performance_threshold"), step, hyperparameters.get("episode_length_increment")
         )
 
     training_end_time = time.time()
@@ -145,11 +141,3 @@ def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False)
     print(f"Average Evaluation Reward over {num_episodes} episodes: {avg_reward}")
     return avg_reward
 
-
-def eval_model():
-    logger = ExperimentLogger("logs/eval_performance")
-    model_path = "models/20241115-181836_model"
-    agent = Agent(logger, model_path)
-    agent.load_model(model_path)
-
-    evaluate_agent(agent, logger, 1, 400, True)

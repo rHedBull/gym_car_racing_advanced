@@ -33,6 +33,7 @@ class ExperimentLogger:
             window_size (int): Number of episodes for rolling window metrics.
             experiment_name (str): Optional name for the experiment.
         """
+        self.total_episodes = 0
         self.experiment_name = experiment_name
 
         self.log_dir = log_dir
@@ -125,6 +126,7 @@ class ExperimentLogger:
         self.episode_rewards.append(total_reward)
         self.episode_steps.append(step_count)
         average_reward = total_reward / step_count
+        self.total_episodes += 1
 
         wandb.log({
             "episode/total_reward": total_reward,
@@ -132,21 +134,7 @@ class ExperimentLogger:
             "episode/steps": step_count,
             "episode/epsilon": epsilon,
             "episode/buffer_size": buffer_size
-        })
-
-        # # Log per-episode metrics
-        # with self.writer.as_default():
-        #     tf.summary.scalar("Reward/Episode", total_reward, episode)
-        #     tf.summary.scalar("Steps/Episode", step_count, episode)
-        #
-        # # Log rolling window metrics
-        # if len(self.episode_rewards) == self.window_size:
-        #     avg_reward = np.mean(self.episode_rewards)
-        #     avg_steps = np.mean(self.episode_steps)
-        #
-        #     with self.writer.as_default():
-        #         tf.summary.scalar("Reward/Average_Window", avg_reward, episode)
-        #         tf.summary.scalar("Steps/Average_Window", avg_steps, episode)
+        }, step=step)
 
     def log_evaluation_metrics(
         self,
