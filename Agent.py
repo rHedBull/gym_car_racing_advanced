@@ -2,6 +2,7 @@ import random
 from itertools import product
 
 import cv2
+import numpy as np
 from matplotlib import pyplot as plt
 
 from DQN import DQN
@@ -20,13 +21,11 @@ class Agent:
         self.state = None
 
         # Generate all possible combinations
-        action_combinations = list(
-            product(steering_options, gas_options, break_options)
-        )
+        action_combinations = list(product(steering_options, gas_options, break_options))
 
-        # Assign a unique index to each combination
         self.action_mapping = {
-            idx: list(action) for idx, action in enumerate(action_combinations)
+            idx: np.array(action, dtype=np.float64)
+            for idx, action in enumerate(action_combinations)
         }
 
         action_size = len(self.action_mapping)
@@ -57,13 +56,19 @@ class Agent:
         action_values = self.action_mapping.get(action_index)
         return action_values
 
-    def store_transition(self, old_observation, action, reward, new_observation, done):
+    def store_transition(self, old_observation, action_values, reward, new_observation, done):
         """Stores a transition in the DQN's replay buffer."""
-
-        # convert both observations to grayscale
+        if action_values is None:
+            print("Action values is None, skipping store_transition")
+            return
+        action_index = self.get_action_index(action_values)
+        if action_index is None:
+            print("Action index is None, skipping store_transition")
+            return
+        # Convert observations to grayscale
         old_observation = rgb_to_grayscale_opencv(old_observation)
         new_observation = rgb_to_grayscale_opencv(new_observation)
-        action_index = self.get_action_index(action)
+
         self.DQN.store_transition(
             old_observation, action_index, reward, new_observation, done
         )
@@ -79,7 +84,7 @@ class Agent:
 
     def get_action_index(self, action):
         for idx, act in self.action_mapping.items():
-            if act == action:
+            if np.array_equal(act, action):
                 return idx
         return None
 

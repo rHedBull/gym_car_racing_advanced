@@ -84,7 +84,7 @@ def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False)
     render_episode = False
 
     env = gym.make(
-        "CarRacing-v2",
+        "CarRacing-v3",
         render_mode="rgb_array",
         lap_complete_percent=0.95,
         domain_randomize=False,

@@ -20,7 +20,7 @@ def main(args):
 
 
     env = gym.make(
-        "CarRacing-v2",
+        "CarRacing-v3",
         render_mode="rgb-array",
         lap_complete_percent=0.95,
         domain_randomize=False,
@@ -44,9 +44,6 @@ def main(args):
 
 def setup(args):
 
-    # for testing
-    args.hyperparameters_path = "hyperparameters.json"
-
     if args.hyperparameters_path is None:
         hyperparameters = {
             "learning_rate": args.learning_rate,
@@ -64,6 +61,8 @@ def setup(args):
             "episode_length_increment": args.episode_length_increment,
             "max_steps_per_episode": args.max_steps_per_episode,
             "max_total_steps": args.max_total_steps,
+            "eval_episodes": args.eval_episodes,
+            "eval_steps": args.eval_steps
         }
     else:
         with open(args.hyperparameters_path, "r") as f:
@@ -159,6 +158,8 @@ if __name__ == "__main__":
                         help="Increment for episode length when performance threshold is met")
     parser.add_argument("--max_steps_per_episode", type=int, default=500, help="Maximum steps per episode")
     parser.add_argument("--max_total_steps", type=int, default=1000, help="Maximum total steps for the experiment")
+    parser.add_argument("--eval_episodes", type=int, default=2, help="Number of episodes to evaluate the model")
+    parser.add_argument("--eval_steps", type=int, default=400, help="Number of steps per evaluation episode")
     arg_parser = parser.parse_args()
 
     main(arg_parser)
