@@ -45,7 +45,12 @@ class DQN:
         self.batch_size = hyperparameters.get("batch_size")
 
         # Device configuration
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if hyperparameters.get("use_gpu") and device() == "cuda":
+            self.device = "cuda"
+            print("Using GPU for training.")
+        else:
+            self.device = "cpu"
+            print("Using CPU for training.")
 
         # Q-Network and Target Network
         self.q_network = QNetwork(state_size, action_size, hidden_size)
@@ -74,7 +79,7 @@ class DQN:
         if random.random() < self.epsilon:
             return random.randrange(self.action_size)
         else:
-            state = torch.FloatTensor(state).unsqueeze(0)  # Add batch dimension
+            state = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # Add batch dimension
             with torch.no_grad():
                 q_values = self.q_network(state)
             return q_values.argmax().item()
@@ -98,18 +103,18 @@ class DQN:
         states, actions, rewards, next_states, dones = zip(*batch)
 
         states = (
-            torch.FloatTensor(np.array(states)).unsqueeze(1).to(device())
+            torch.FloatTensor(np.array(states)).unsqueeze(1).to(self.device)
         )  # Shape: [batch, 1, 96, 96]
         actions = (
-            torch.LongTensor(actions).unsqueeze(1).to(device())
+            torch.LongTensor(actions).unsqueeze(1).to(self.device)
         )  # Shape: [batch, 1]
         rewards = (
-            torch.FloatTensor(rewards).unsqueeze(1).to(device())
+            torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
         )  # Shape: [batch, 1]
         next_states = (
-            torch.FloatTensor(np.array(next_states)).unsqueeze(1).to(device())
+            torch.FloatTensor(np.array(next_states)).unsqueeze(1).to(self.device)
         )  # Shape: [batch, 1, 96, 96]
-        dones = torch.FloatTensor(dones).unsqueeze(1).to(device())
+        dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
 
         # Current Q-values
         current_q = self.q_network(states).gather(1, actions)
@@ -192,8 +197,11 @@ class DQN:
         self.epsilon, self.epsilon_decay = calculate_epsilon(self.hyperparameters.get("max_total_steps"), self.steps_done)
         print(f"epsilon reset to {self.epsilon} and decay adapted to {self.epsilon_decay}")
         self.q_network.load_state_dict(model_data.get("q_network_state_dict"))
+        self.q_network.to(self.device)
         self.target_network.load_state_dict(model_data.get("target_network_state_dict"))
+        self.target_network.to(self.device)
         self.optimizer.load_state_dict(model_data.get("optimizer_state_dict"))
+
         print(f"Model {self.logger.experiment_name} loaded with {self.steps_done} training steps.")
 
     def save_checkpoint(self, current, total, filename=None):

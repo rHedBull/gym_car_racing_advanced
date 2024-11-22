@@ -62,7 +62,8 @@ def setup(args):
             "max_steps_per_episode": args.max_steps_per_episode,
             "max_total_steps": args.max_total_steps,
             "eval_episodes": args.eval_episodes,
-            "eval_steps": args.eval_steps
+            "eval_steps": args.eval_steps,
+            "use_gpu": args.use_gpu
         }
     else:
         with open(args.hyperparameters_path, "r") as f:
@@ -135,6 +136,13 @@ if __name__ == "__main__":
         type=str,
         default="logs/agent_performance/" + default_experiment_name,
         help="Name of the log file for the training run",
+    )
+
+    parser.add_argument(
+        "--use_gpu",
+        type=bool,
+        default=False,
+        help="Whether to use the GPU for training",
     )
 
     # for hyperparameter parsing
