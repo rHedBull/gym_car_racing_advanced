@@ -1,0 +1,17 @@
+.pre-commit-config.yaml
+.logs
+.wandb
+.trained_models
+.gitignore
+.checkpoints
+.cadence
+.agent_performance
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.idea/
+
+tmp/
