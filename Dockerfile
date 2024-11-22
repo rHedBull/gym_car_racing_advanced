@@ -30,4 +30,4 @@ RUN pip install --no-cache-dir --upgrade pip \
 ENV PYTHONUNBUFFERED=1
 
 # Run the training script when the container launches
-CMD ["python", "main.py"]
+ENTRYPOINT ["python", "main.py"]
