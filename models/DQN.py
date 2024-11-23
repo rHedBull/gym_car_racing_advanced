@@ -8,8 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 import wandb
-
 from models.QNetwork import QNetwork
+
 
 def device():
     """Returns the device to run computations on."""
@@ -36,7 +36,9 @@ class DQN:
         self.target_update_freq = hyperparameters.get("target_update_freq")
 
         # Epsilon parameters for ε-greedy policy
-        self.epsilon, self.epsilon_decay = calculate_epsilon(hyperparameters.get("max_total_steps"), 0)
+        self.epsilon, self.epsilon_decay = calculate_epsilon(
+            hyperparameters.get("max_total_steps"), 0
+        )
         self.epsilon_min = hyperparameters.get("epsilon_end")
 
         # Replay memory
@@ -63,7 +65,6 @@ class DQN:
 
         self.steps_done = 0
 
-
         self.logger = logger
 
         # Checkpoint directory
@@ -77,7 +78,9 @@ class DQN:
         if random.random() < self.epsilon:
             return random.randrange(self.action_size)
         else:
-            state = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # Add batch dimension
+            state = (
+                torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            )  # Add batch dimension
             with torch.no_grad():
                 q_values = self.q_network(state)
             return q_values.argmax().item()
@@ -153,9 +156,7 @@ class DQN:
             self.target_network.load_state_dict(self.q_network.state_dict())
             self.logger.log_target_update()
 
-        self.logger.log_step_metrics(
-            self.steps_done, loss.item(), avg_q, total_norm
-        )
+        self.logger.log_step_metrics(self.steps_done, loss.item(), avg_q, total_norm)
 
     def save_model(self, path, log_to_wandb=False, artifact_name=None):
         """Saves the Q-network's state."""
@@ -170,13 +171,11 @@ class DQN:
             "q_network_state_dict": self.q_network.state_dict(),
             "target_network_state_dict": self.target_network.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
-            "wandb_run_id": wandb.run.id
+            "wandb_run_id": wandb.run.id,
         }
 
         torch.save(model_data, path)
-        print(
-            f"Model saved at {path} with {self.steps_done} training steps."
-        )
+        print(f"Model saved at {path} with {self.steps_done} training steps.")
 
         if log_to_wandb:
             artifact = wandb.Artifact(artifact_name, type="model")
@@ -192,15 +191,21 @@ class DQN:
         self.steps_done = model_data.get("total_steps")
 
         # recalculate epsilon proportional to steps done
-        self.epsilon, self.epsilon_decay = calculate_epsilon(self.hyperparameters.get("max_total_steps"), self.steps_done)
-        print(f"epsilon reset to {self.epsilon} and decay adapted to {self.epsilon_decay}")
+        self.epsilon, self.epsilon_decay = calculate_epsilon(
+            self.hyperparameters.get("max_total_steps"), self.steps_done
+        )
+        print(
+            f"epsilon reset to {self.epsilon} and decay adapted to {self.epsilon_decay}"
+        )
         self.q_network.load_state_dict(model_data.get("q_network_state_dict"))
         self.q_network.to(self.device)
         self.target_network.load_state_dict(model_data.get("target_network_state_dict"))
         self.target_network.to(self.device)
         self.optimizer.load_state_dict(model_data.get("optimizer_state_dict"))
 
-        print(f"Model {self.logger.experiment_name} loaded with {self.steps_done} training steps.")
+        print(
+            f"Model {self.logger.experiment_name} loaded with {self.steps_done} training steps."
+        )
 
     def save_checkpoint(self, current, total, filename=None):
         """Saves the model and optimizer states."""
@@ -235,17 +240,19 @@ class DQN:
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         print(f"Checkpoint loaded: {filepath}")
 
+
 def load_model(path):
     """Loads the Q-network's state."""
     if not os.path.isfile(path):
         raise FileNotFoundError(f"No checkpoint found at '{path}'")
     return torch.load(path, map_location=device())
 
+
 def calculate_epsilon(total_steps, current_step):
     """Calculates epsilon based on the current training step."""
 
     epsilon_target_at_70_percent = 0.01
-    decay_rate = (epsilon_target_at_70_percent/1)**(1/total_steps)
+    decay_rate = (epsilon_target_at_70_percent / 1) ** (1 / total_steps)
 
     current_epsilon = decay_rate**current_step
 

@@ -2,22 +2,17 @@ import argparse
 import json
 from datetime import datetime
 
-import wandb
 import gymnasium as gym
 
+import wandb
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
-from train import evaluate_agent, train
 from models.DQN import load_model
-
-
+from train import evaluate_agent, train
 
 
 def main(args):
-
     hyperparameters, old_model_data, logger = setup(args)
-
-
 
     env = gym.make(
         "CarRacing-v3",
@@ -27,14 +22,19 @@ def main(args):
         continuous=True,
     )
 
-
     full_path = args.model_save_path + logger.experiment_name + ".pth"
     agent = Agent(hyperparameters, logger, old_model_data)
     wandb.config.update(hyperparameters, allow_val_change=True)
 
     train(env, agent, logger, hyperparameters)
     agent.save_model(full_path, log_to_wandb=True, artifact_name="finished_model")
-    evaluate_agent(agent, logger, hyperparameters.get("eval_episodes"), hyperparameters.get("eval_steps"), True)
+    evaluate_agent(
+        agent,
+        logger,
+        hyperparameters.get("eval_episodes"),
+        hyperparameters.get("eval_steps"),
+        True,
+    )
 
     logger.close()
     env.close()
@@ -43,7 +43,6 @@ def main(args):
 
 
 def setup(args):
-
     if args.hyperparameters_path is None:
         hyperparameters = {
             "learning_rate": args.learning_rate,
@@ -63,7 +62,7 @@ def setup(args):
             "max_total_steps": args.max_total_steps,
             "eval_episodes": args.eval_episodes,
             "eval_steps": args.eval_steps,
-            "use_gpu": args.use_gpu
+            "use_gpu": args.use_gpu,
         }
     else:
         with open(args.hyperparameters_path, "r") as f:
@@ -75,7 +74,6 @@ def setup(args):
     if args.model_load_path is not None:
         old_model_data = load_model(args.model_load_path)
         logger.experiment_name = old_model_data["experiment_name"]
-
 
         wandb.init(
             project="gymnasium_car_racing",  # Replace with your project name
@@ -90,10 +88,8 @@ def setup(args):
             project="gymnasium_car_racing",  # Replace with your project name
             name=logger.experiment_name,
             config=hyperparameters,
-            mode="online"
+            mode="online",
         )
-
-    config = wandb.config
 
     return hyperparameters, old_model_data, logger
 
@@ -146,29 +142,103 @@ if __name__ == "__main__":
     )
 
     # for hyperparameter parsing
-    parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate for the optimizer")
-    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor for future rewards")
-    parser.add_argument("--epsilon_start", type=float, default=1.0,
-                        help="Starting value of epsilon for ε-greedy policy")
-    parser.add_argument("--epsilon_end", type=float, default=0.01, help="Minimum value of epsilon for ε-greedy policy")
-    parser.add_argument("--epsilon_decay", type=float, default=0.99978,
-                        help="Decay rate of epsilon for ε-greedy policy")
-    parser.add_argument("--replay_buffer_size", type=int, default=10000, help="Size of the replay buffer")
-    parser.add_argument("--batch_size", type=int, default=64, help="Batch size for training")
-    parser.add_argument("--target_update_freq", type=int, default=1000, help="Frequency of target network updates")
-    parser.add_argument("--max_gradient_norm", type=float, default=1.0, help="Maximum norm for gradient clipping")
-    parser.add_argument("--hidden_size", type=int, default=64, help="Number of hidden units in the Q-network")
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=1e-3,
+        help="Learning rate for the optimizer",
+    )
+    parser.add_argument(
+        "--gamma", type=float, default=0.99, help="Discount factor for future rewards"
+    )
+    parser.add_argument(
+        "--epsilon_start",
+        type=float,
+        default=1.0,
+        help="Starting value of epsilon for ε-greedy policy",
+    )
+    parser.add_argument(
+        "--epsilon_end",
+        type=float,
+        default=0.01,
+        help="Minimum value of epsilon for ε-greedy policy",
+    )
+    parser.add_argument(
+        "--epsilon_decay",
+        type=float,
+        default=0.99978,
+        help="Decay rate of epsilon for ε-greedy policy",
+    )
+    parser.add_argument(
+        "--replay_buffer_size",
+        type=int,
+        default=10000,
+        help="Size of the replay buffer",
+    )
+    parser.add_argument(
+        "--batch_size", type=int, default=64, help="Batch size for training"
+    )
+    parser.add_argument(
+        "--target_update_freq",
+        type=int,
+        default=1000,
+        help="Frequency of target network updates",
+    )
+    parser.add_argument(
+        "--max_gradient_norm",
+        type=float,
+        default=1.0,
+        help="Maximum norm for gradient clipping",
+    )
+    parser.add_argument(
+        "--hidden_size",
+        type=int,
+        default=64,
+        help="Number of hidden units in the Q-network",
+    )
 
-    parser.add_argument("--start_episode_length", type=int, default=100, help="Initial length of each episode")
-    parser.add_argument("--performance_threshold", type=float, default=0.5,
-                        help="Performance threshold for adjusting episode length")
-    parser.add_argument("--episode_length_increment", type=int, default=100,
-                        help="Increment for episode length when performance threshold is met")
-    parser.add_argument("--max_steps_per_episode", type=int, default=500, help="Maximum steps per episode")
-    parser.add_argument("--max_total_steps", type=int, default=1000, help="Maximum total steps for the experiment")
-    parser.add_argument("--eval_episodes", type=int, default=2, help="Number of episodes to evaluate the model")
-    parser.add_argument("--eval_steps", type=int, default=400, help="Number of steps per evaluation episode")
+    parser.add_argument(
+        "--start_episode_length",
+        type=int,
+        default=100,
+        help="Initial length of each episode",
+    )
+    parser.add_argument(
+        "--performance_threshold",
+        type=float,
+        default=0.5,
+        help="Performance threshold for adjusting episode length",
+    )
+    parser.add_argument(
+        "--episode_length_increment",
+        type=int,
+        default=100,
+        help="Increment for episode length when performance threshold is met",
+    )
+    parser.add_argument(
+        "--max_steps_per_episode",
+        type=int,
+        default=500,
+        help="Maximum steps per episode",
+    )
+    parser.add_argument(
+        "--max_total_steps",
+        type=int,
+        default=1000,
+        help="Maximum total steps for the experiment",
+    )
+    parser.add_argument(
+        "--eval_episodes",
+        type=int,
+        default=2,
+        help="Number of episodes to evaluate the model",
+    )
+    parser.add_argument(
+        "--eval_steps",
+        type=int,
+        default=400,
+        help="Number of steps per evaluation episode",
+    )
     arg_parser = parser.parse_args()
 
     main(arg_parser)
-    # eval_model()

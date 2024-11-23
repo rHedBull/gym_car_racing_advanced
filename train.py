@@ -1,17 +1,19 @@
 import time
+
 import gymnasium as gym
+
 
 def train(env, agent, logger, hyperparameters):
     steps_per_episode = hyperparameters.get("start_episode_length")
     training_start_time = time.time()
     max_total_steps = hyperparameters.get("max_total_steps")
-    total_steps_taken = agent.DQN.steps_done # 0 if not continuing a training
+    total_steps_taken = agent.DQN.steps_done  # 0 if not continuing a training
 
     if total_steps_taken >= max_total_steps:
         print("Agent has already trained for the maximum number of steps")
         return
 
-    episode = logger.total_episodes # 0 if not continuing a training
+    episode = logger.total_episodes  # 0 if not continuing a training
     print("STARTING TRAINING")
     print("planning to take {} steps".format(max_total_steps - total_steps_taken))
     while total_steps_taken < max_total_steps:
@@ -41,7 +43,7 @@ def train(env, agent, logger, hyperparameters):
             agent.train()
 
             episode_rewards.append(reward)
-            #logger.log_action(total_steps_taken, action)
+            # logger.log_action(total_steps_taken, action)
 
             old_observation = new_observation
             step += 1
@@ -49,15 +51,24 @@ def train(env, agent, logger, hyperparameters):
 
         total_episode_reward = sum(episode_rewards)
         average_reward = total_episode_reward / len(episode_rewards)
-        #agent.save_checkpoint(total_steps_taken, max_total_steps, logger.checkpoint_path)
-        logger.log_episode_metrics(total_steps_taken, step, total_episode_reward, agent.DQN.epsilon, len(agent.DQN.memory))
+        # agent.save_checkpoint(total_steps_taken, max_total_steps, logger.checkpoint_path)
+        logger.log_episode_metrics(
+            total_steps_taken,
+            step,
+            total_episode_reward,
+            agent.DQN.epsilon,
+            len(agent.DQN.memory),
+        )
 
         print(
             f"Episode {episode + 1}: Total Reward = {total_episode_reward}, Avrg. Reward = {average_reward}, Steps = {step}, Epsilon = {agent.DQN.epsilon:.4f}"
         )
 
         steps_per_episode = adjust_max_steps(
-            average_reward, hyperparameters.get("performance_threshold"), step, hyperparameters.get("episode_length_increment")
+            average_reward,
+            hyperparameters.get("performance_threshold"),
+            step,
+            hyperparameters.get("episode_length_increment"),
         )
 
     training_end_time = time.time()
@@ -114,7 +125,6 @@ def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False)
                 rgb_array = env.render()
                 logger.log_image(rgb_array, step)
 
-
             action = agent.get_action(old_observation)
 
             new_observation, reward, _, all_done, _ = env.step(action)
@@ -140,4 +150,3 @@ def evaluate_agent(agent, logger, num_episodes=10, eval_steps=200, render=False)
     avg_reward = sum(episode_rewards) / num_episodes
     print(f"Average Evaluation Reward over {num_episodes} episodes: {avg_reward}")
     return avg_reward
-

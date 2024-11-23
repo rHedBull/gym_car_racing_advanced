@@ -5,9 +5,9 @@ import cv2
 import imageio
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
 
 import wandb
-from matplotlib import pyplot as plt
 
 
 def debug_display_image(image, step):
@@ -16,7 +16,7 @@ def debug_display_image(image, step):
     """
     plt.imshow(image)  # Assuming `image` is in RGB format
     plt.title(f"Step: {step}")
-    plt.axis('off')  # Remove axes for better visualization
+    plt.axis("off")  # Remove axes for better visualization
     plt.show()  # Display the image inline
 
     # Optionally, save the image for offline debugging
@@ -60,6 +60,7 @@ class ExperimentLogger:
         self.image_frames = []
 
     def log_step_metrics(self, loss, avg_q, gradient_norm):
+    def log_step_metrics(self, step, loss, avg_q, gradient_norm):
         """
         Logs step-based metrics at defined intervals.
 
@@ -79,14 +80,17 @@ class ExperimentLogger:
         moving_avg_q = np.mean(self.q_value_history)
         moving_avg_grad = np.mean(self.gradient_norms)
 
-        wandb.log({
-            "step/loss": loss,
-            "step/average_loss": moving_avg_loss,
-            "step/average_q": avg_q,
-            "step/average_q_moving_avg": moving_avg_q,
-            "step/gradient_norm": gradient_norm,
-            "step/gradient_norm_moving_avg": moving_avg_grad
-        }, step=step)
+        wandb.log(
+            {
+                "step/loss": loss,
+                "step/average_loss": moving_avg_loss,
+                "step/average_q": avg_q,
+                "step/average_q_moving_avg": moving_avg_q,
+                "step/gradient_norm": gradient_norm,
+                "step/gradient_norm_moving_avg": moving_avg_grad,
+            },
+            step=step,
+        )
 
     def log_target_update(self):
         """
@@ -97,11 +101,9 @@ class ExperimentLogger:
         """
         self.target_updates += 1
 
-        wandb.log({
-            "TargetNetwork/Updates": self.target_updates
-        })
+        wandb.log({"TargetNetwork/Updates": self.target_updates})
 
-    def log_episode_metrics(self, step,  step_count, total_reward, epsilon, buffer_size):
+    def log_episode_metrics(self, step, step_count, total_reward, epsilon, buffer_size):
         """
         Logs episode-based metrics.
 
@@ -117,13 +119,16 @@ class ExperimentLogger:
         average_reward = total_reward / step_count
         self.total_episodes += 1
 
-        wandb.log({
-            "episode/total_reward": total_reward,
-            "episode/average_reward": average_reward,
-            "episode/steps": step_count,
-            "episode/epsilon": epsilon,
-            "episode/buffer_size": buffer_size
-        }, step=step)
+        wandb.log(
+            {
+                "episode/total_reward": total_reward,
+                "episode/average_reward": average_reward,
+                "episode/steps": step_count,
+                "episode/epsilon": epsilon,
+                "episode/buffer_size": buffer_size,
+            },
+            step=step,
+        )
 
     def log_evaluation_metrics(
         self,
@@ -132,13 +137,11 @@ class ExperimentLogger:
     ):
         average_reward = total_reward / step_count
 
-        wandb.log({
-            "eval/total_reward": total_reward,
-            "eval/average_reward": average_reward
-        })
+        wandb.log(
+            {"eval/total_reward": total_reward, "eval/average_reward": average_reward}
+        )
 
     def log_image(self, rgb_array, step):
-
         image_with_text = self._add_step_text(rgb_array, step)
 
         # transform observation to image
@@ -157,11 +160,11 @@ class ExperimentLogger:
 
         # Create the GIF
         gif_path = os.path.join(self.log_dir, gif_name)
-        imageio.mimsave(gif_path, frames, duration=0.1)  # duration specifies time per frame
+        imageio.mimsave(
+            gif_path, frames, duration=0.1
+        )  # duration specifies time per frame
 
-        wandb.log({
-            "Episode/GIF": wandb.Video(gif_path, format="gif")
-        })
+        wandb.log({"Episode/GIF": wandb.Video(gif_path, format="gif")})
         os.remove(gif_path)
 
         # Clear the frames list to save memory
@@ -186,7 +189,16 @@ class ExperimentLogger:
         color = (255, 255, 255)  # White color
         thickness = 2
         position = (10, 30)  # Top-left corner of the image
-        cv2.putText(image, text, position, font, font_scale, color, thickness, lineType=cv2.LINE_AA)
+        cv2.putText(
+            image,
+            text,
+            position,
+            font,
+            font_scale,
+            color,
+            thickness,
+            lineType=cv2.LINE_AA,
+        )
 
         # Convert back to RGB if needed
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

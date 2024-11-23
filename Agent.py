@@ -3,10 +3,8 @@ from itertools import product
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 from models.DQN import DQN
-
 
 steering_options = [-1.0, -0.5, 0.0, 0.5, 1.0]
 gas_options = [0, 1]
@@ -21,7 +19,9 @@ class Agent:
         self.state = None
 
         # Generate all possible combinations
-        action_combinations = list(product(steering_options, gas_options, break_options))
+        action_combinations = list(
+            product(steering_options, gas_options, break_options)
+        )
 
         self.action_mapping = {
             idx: np.array(action, dtype=np.float64)
@@ -56,7 +56,9 @@ class Agent:
         action_values = self.action_mapping.get(action_index)
         return action_values
 
-    def store_transition(self, old_observation, action_values, reward, new_observation, done):
+    def store_transition(
+        self, old_observation, action_values, reward, new_observation, done
+    ):
         """Stores a transition in the DQN's replay buffer."""
         if action_values is None:
             print("Action values is None, skipping store_transition")
@@ -111,26 +113,3 @@ def rgb_to_grayscale_opencv(rgb):
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     grayscale = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     return grayscale
-
-
-def print_obs(img, grey_obs):
-    # Validate the image shape
-    if img.ndim != 3 or img.shape[2] != 3:
-        raise ValueError("Expected observation[0] to be an RGB image with 3 channels.")
-
-    # Display the original RGB image
-    plt.figure(figsize=(10, 5))
-
-    plt.subplot(1, 2, 1)
-    plt.imshow(img)
-    plt.title("Original RGB Image")
-    plt.axis("off")  # Hide axis
-
-    # Display the grayscale image
-    plt.subplot(1, 2, 2)
-    plt.imshow(grey_obs, cmap="gray")
-    plt.title("Grayscale Image")
-    plt.axis("off")  # Hide axis
-
-    plt.tight_layout()
-    plt.show()
