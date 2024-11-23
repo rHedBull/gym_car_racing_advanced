@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-from DQN import DQN
+from models.DQN import DQN
 
 
 steering_options = [-1.0, -0.5, 0.0, 0.5, 1.0]

@@ -62,7 +62,7 @@ def main(args):
     # Create a simple OpenCV image
     img = np.zeros((100, 100, 3), dtype=np.uint8)
     cv2.putText(img, 'Test', (5, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    cv2.imwrite('opencv_test.png', img)
+    cv2.imwrite('test-output/opencv_test.png', img)
     print("Created an OpenCV test image: opencv_test.png")
 
     # Create a simple matplotlib plot
@@ -81,7 +81,7 @@ def main(args):
     ]
 
     # Print and save test statements
-    output_file = "test_output.txt"
+    output_file = "test-output/test_output.txt"
     print(f"Writing test statements to {output_file}...\n")
     with open(output_file, "w") as f:
         for statement in test_statements:

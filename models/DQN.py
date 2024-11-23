@@ -9,8 +9,7 @@ import torch.optim as optim
 
 import wandb
 
-from QNetwork import QNetwork
-
+from models.QNetwork import QNetwork
 
 def device():
     """Returns the device to run computations on."""
