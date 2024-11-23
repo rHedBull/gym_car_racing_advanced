@@ -59,7 +59,16 @@ class ExperimentLogger:
         # Image logging
         self.image_frames = []
 
-    def log_step_metrics(self, loss, avg_q, gradient_norm):
+    def log_action(self, step, selected_actions):
+        wandb.log(
+            {
+                "step/steering": selected_actions[0],
+                "step/gas": selected_actions[1],
+                "step/break": selected_actions[2],
+            },
+            step=step,
+        )
+
     def log_step_metrics(self, step, loss, avg_q, gradient_norm):
         """
         Logs step-based metrics at defined intervals.
