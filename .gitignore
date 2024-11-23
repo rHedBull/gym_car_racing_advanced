@@ -7,3 +7,5 @@
 /test/docker-test/test-output/
 
 /.cadence/
+
+**/__pycache__/*
