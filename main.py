@@ -8,7 +8,7 @@ import gymnasium as gym
 from Agent import Agent
 from ExperimentLogger import ExperimentLogger
 from train import evaluate_agent, train
-from DQN import load_model
+from models.DQN import load_model
 
 
 
