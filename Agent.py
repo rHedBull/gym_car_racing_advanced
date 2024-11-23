@@ -2,17 +2,9 @@ import random
 from itertools import product
 
 import cv2
-from matplotlib import pyplot as plt
+import numpy as np
 
-from DQN import DQN
-
-# continuous there are 3 actions :
-#
-# 0: steering, -1 is full left, +1 is full right
-#
-# 1: gas
-#
-# 2: breaking
+from models.DQN import DQN
 
 steering_options = [-1.0, -0.5, 0.0, 0.5, 1.0]
 gas_options = [0, 1]
@@ -22,7 +14,7 @@ state_size = 96 * 96
 
 
 class Agent:
-    def __init__(self, hyperparameters, logger, model_path=None):
+    def __init__(self, hyperparameters, logger, old_model_data=None):
         self.reward = None
         self.state = None
 
@@ -31,16 +23,25 @@ class Agent:
             product(steering_options, gas_options, break_options)
         )
 
-        # Assign a unique index to each combination
         self.action_mapping = {
-            idx: list(action) for idx, action in enumerate(action_combinations)
+            idx: np.array(action, dtype=np.float64)
+            for idx, action in enumerate(action_combinations)
         }
 
         action_size = len(self.action_mapping)
 
         self.DQN = DQN(hyperparameters, state_size, action_size, logger)
-        if model_path is not None:
-            self.DQN.load_model(model_path)
+        if old_model_data is not None:
+            if action_size != old_model_data.get("action_size"):
+                raise ValueError(
+                    "The action size of the old model does not match the current action size."
+                )
+            if state_size != old_model_data.get("state_size"):
+                raise ValueError(
+                    "The state_size of the old model does not match the current state size."
+                )
+
+            self.DQN.load_model(old_model_data)
 
         self.reset()
 
@@ -55,13 +56,21 @@ class Agent:
         action_values = self.action_mapping.get(action_index)
         return action_values
 
-    def store_transition(self, old_observation, action, reward, new_observation, done):
+    def store_transition(
+        self, old_observation, action_values, reward, new_observation, done
+    ):
         """Stores a transition in the DQN's replay buffer."""
-
-        # convert both observations to grayscale
+        if action_values is None:
+            print("Action values is None, skipping store_transition")
+            return
+        action_index = self.get_action_index(action_values)
+        if action_index is None:
+            print("Action index is None, skipping store_transition")
+            return
+        # Convert observations to grayscale
         old_observation = rgb_to_grayscale_opencv(old_observation)
         new_observation = rgb_to_grayscale_opencv(new_observation)
-        action_index = self.get_action_index(action)
+
         self.DQN.store_transition(
             old_observation, action_index, reward, new_observation, done
         )
@@ -72,20 +81,17 @@ class Agent:
     def train(self):
         return self.DQN.train_step()
 
-    def save_model(self, path):
-        self.DQN.save_model(path)
-
-    def load_model(self, path):
-        self.DQN.load_model(path)
+    def save_model(self, path, log_to_wandb=False, artifact_name=None):
+        self.DQN.save_model(path, log_to_wandb, artifact_name)
 
     def get_action_index(self, action):
         for idx, act in self.action_mapping.items():
-            if act == action:
+            if np.array_equal(act, action):
                 return idx
         return None
 
-    def save_checkpoint(self, current_episode, total_episodes, checkpoint_path=None):
-        self.DQN.save_checkpoint(current_episode, total_episodes, checkpoint_path)
+    def save_checkpoint(self, current, total, checkpoint_path=None):
+        self.DQN.save_checkpoint(current, total, checkpoint_path)
 
 
 def get_random_action():
@@ -107,26 +113,3 @@ def rgb_to_grayscale_opencv(rgb):
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     grayscale = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     return grayscale
-
-
-def print_obs(img, grey_obs):
-    # Validate the image shape
-    if img.ndim != 3 or img.shape[2] != 3:
-        raise ValueError("Expected observation[0] to be an RGB image with 3 channels.")
-
-    # Display the original RGB image
-    plt.figure(figsize=(10, 5))
-
-    plt.subplot(1, 2, 1)
-    plt.imshow(img)
-    plt.title("Original RGB Image")
-    plt.axis("off")  # Hide axis
-
-    # Display the grayscale image
-    plt.subplot(1, 2, 2)
-    plt.imshow(grey_obs, cmap="gray")
-    plt.title("Grayscale Image")
-    plt.axis("off")  # Hide axis
-
-    plt.tight_layout()
-    plt.show()

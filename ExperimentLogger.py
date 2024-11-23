@@ -1,8 +1,26 @@
 import os
 from collections import deque
 
+import cv2
+import imageio
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
+
+import wandb
+
+
+def debug_display_image(image, step):
+    """
+    Helper function to display or save the image for debugging.
+    """
+    plt.imshow(image)  # Assuming `image` is in RGB format
+    plt.title(f"Step: {step}")
+    plt.axis("off")  # Remove axes for better visualization
+    plt.show()  # Display the image inline
+
+    # Optionally, save the image for offline debugging
+    plt.savefig(f"debug_image_step_{step}.png")
 
 
 class ExperimentLogger:
@@ -15,6 +33,7 @@ class ExperimentLogger:
             window_size (int): Number of episodes for rolling window metrics.
             experiment_name (str): Optional name for the experiment.
         """
+        self.total_episodes = 0
         self.experiment_name = experiment_name
 
         self.log_dir = log_dir
@@ -37,22 +56,20 @@ class ExperimentLogger:
         # Target network updates
         self.target_updates = 0
 
-    def log_hyperparameters(self, hyperparams):
-        """
-        Logs the hyperparameters of the experiment.
+        # Image logging
+        self.image_frames = []
 
-        Args:
-            hyperparams (dict): Dictionary of hyperparameters.
-        """
-        self.hyperparams = hyperparams
-        for key, value in hyperparams.items():
-            self.writer.add_text("Hyperparameters", f"{key}: {value}\n")
-        # Optionally, save hyperparameters to a file
-        with open(os.path.join(self.log_dir, "hyperparameters.txt"), "w") as f:
-            for key, value in hyperparams.items():
-                f.write(f"{key}: {value}\n")
+    def log_action(self, step, selected_actions):
+        wandb.log(
+            {
+                "step/steering": selected_actions[0],
+                "step/gas": selected_actions[1],
+                "step/break": selected_actions[2],
+            },
+            step=step,
+        )
 
-    def log_step_metrics(self, step, loss, avg_q, gradient_norm, buffer_size):
+    def log_step_metrics(self, step, loss, avg_q, gradient_norm):
         """
         Logs step-based metrics at defined intervals.
 
@@ -62,6 +79,7 @@ class ExperimentLogger:
             avg_q (float): Average Q-value.
             gradient_norm (float): Norm of gradients.
             buffer_size (int): Current size of the replay buffer.
+
         """
         self.loss_history.append(loss)
         self.q_value_history.append(avg_q)
@@ -71,16 +89,19 @@ class ExperimentLogger:
         moving_avg_q = np.mean(self.q_value_history)
         moving_avg_grad = np.mean(self.gradient_norms)
 
-        with self.writer.as_default():
-            tf.summary.scalar("loss", loss, step)
-            tf.summary.scalar("average_loss", moving_avg_loss, step)
-            tf.summary.scalar("average_q", avg_q, step)
-            tf.summary.scalar("average_q_moving_avg", moving_avg_q, step)
-            tf.summary.scalar("gradient_norm", gradient_norm, step)
-            tf.summary.scalar("gradient_norm_moving_avg", moving_avg_grad, step)
-            tf.summary.scalar("buffer_size", buffer_size, step)
+        wandb.log(
+            {
+                "step/loss": loss,
+                "step/average_loss": moving_avg_loss,
+                "step/average_q": avg_q,
+                "step/average_q_moving_avg": moving_avg_q,
+                "step/gradient_norm": gradient_norm,
+                "step/gradient_norm_moving_avg": moving_avg_grad,
+            },
+            step=step,
+        )
 
-    def log_target_update(self, step):
+    def log_target_update(self):
         """
         Logs the occurrence of a target network update.
 
@@ -88,47 +109,109 @@ class ExperimentLogger:
             step (int): Current training step.
         """
         self.target_updates += 1
-        with self.writer.as_default():
-            tf.summary.scalar("TargetNetwork/Updates", self.target_updates, step)
 
-    def log_episode_metrics(self, episode, step_count, total_reward):
+        wandb.log({"TargetNetwork/Updates": self.target_updates})
+
+    def log_episode_metrics(self, step, step_count, total_reward, epsilon, buffer_size):
         """
         Logs episode-based metrics.
 
         Args:
-            episode (int): Current episode number.
-            total_reward (float): Total reward accumulated in the episode.
-            step_count (int): Number of steps taken in the episode.
-            success (bool): Whether the episode was successful.
+            :param step:
+            :param buffer_size:
+            :param total_reward:
+            :param step_count:
+            :param epsilon:
         """
         self.episode_rewards.append(total_reward)
         self.episode_steps.append(step_count)
+        average_reward = total_reward / step_count
+        self.total_episodes += 1
 
-        # Log per-episode metrics
-        with self.writer.as_default():
-            tf.summary.scalar("Reward/Episode", total_reward, episode)
-            tf.summary.scalar("Steps/Episode", step_count, episode)
-
-        # Log rolling window metrics
-        if len(self.episode_rewards) == self.window_size:
-            avg_reward = np.mean(self.episode_rewards)
-            avg_steps = np.mean(self.episode_steps)
-
-            with self.writer.as_default():
-                tf.summary.scalar("Reward/Average_Window", avg_reward, episode)
-                tf.summary.scalar("Steps/Average_Window", avg_steps, episode)
+        wandb.log(
+            {
+                "episode/total_reward": total_reward,
+                "episode/average_reward": average_reward,
+                "episode/steps": step_count,
+                "episode/epsilon": epsilon,
+                "episode/buffer_size": buffer_size,
+            },
+            step=step,
+        )
 
     def log_evaluation_metrics(
         self,
-        episode,
         step_count,
         total_reward,
     ):
         average_reward = total_reward / step_count
+
+        wandb.log(
+            {"eval/total_reward": total_reward, "eval/average_reward": average_reward}
+        )
+
+    def log_image(self, rgb_array, step):
+        image_with_text = self._add_step_text(rgb_array, step)
+
+        # transform observation to image
+        tensor_img = tf.convert_to_tensor(image_with_text, dtype=tf.uint8)
+        tensor_img = tf.expand_dims(tensor_img, 0)
+
+        self.image_frames.append(image_with_text)
+
         with self.writer.as_default():
-            tf.summary.scalar("Eval steps/episode", step_count, episode)
-            tf.summary.scalar("Eval total reward/episode", total_reward, episode)
-            tf.summary.scalar("Eval avrg. reward", average_reward, episode)
+            tf.summary.image("Step: " + str(step), tensor_img, step)
+
+    def create_gif(self, gif_name="evaluation.gif", max_frames=100):
+        # Limit the number of frames to reduce memory usage
+        n = max(1, len(self.image_frames) // max_frames)
+        frames = self.image_frames[::n]
+
+        # Create the GIF
+        gif_path = os.path.join(self.log_dir, gif_name)
+        imageio.mimsave(
+            gif_path, frames, duration=0.1
+        )  # duration specifies time per frame
+
+        wandb.log({"Episode/GIF": wandb.Video(gif_path, format="gif")})
+        os.remove(gif_path)
+
+        # Clear the frames list to save memory
+        self.image_frames = []
+
+    def _add_step_text(self, image, step):
+        """
+        Adds the step number as text onto the image.
+        """
+        # Ensure the image is in the right format (uint8)
+        if image.dtype != np.uint8:
+            image = (image * 255).astype(np.uint8)
+
+        # Convert to BGR format for OpenCV if image is RGB
+        if image.shape[-1] == 3:  # Assuming last dimension is channels
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        # Add text (step number) to the image
+        text = f"Step: {step}"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1
+        color = (255, 255, 255)  # White color
+        thickness = 2
+        position = (10, 30)  # Top-left corner of the image
+        cv2.putText(
+            image,
+            text,
+            position,
+            font,
+            font_scale,
+            color,
+            thickness,
+            lineType=cv2.LINE_AA,
+        )
+
+        # Convert back to RGB if needed
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image
 
     def close(self):
         """

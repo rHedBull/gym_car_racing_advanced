@@ -1,45 +1,96 @@
 import argparse
-import json
+import os
+import sys
+import time
 from datetime import datetime
-
-import gymnasium as gym
-
-import wandb
-from Agent import Agent
-from ExperimentLogger import ExperimentLogger
-from models.DQN import load_model
-from train import evaluate_agent, train
 
 
 def main(args):
-    hyperparameters, old_model_data, logger = setup(args)
+    print("=== Mock Program Starting ===\n")
 
-    env = gym.make(
-        "CarRacing-v3",
-        render_mode="rgb-array",
-        lap_complete_percent=0.95,
-        domain_randomize=False,
-        continuous=True,
-    )
+    # Confirm Python version
+    print(f"Python Version: {sys.version}\n")
 
-    full_path = args.model_save_path + logger.experiment_name + ".pth"
-    agent = Agent(hyperparameters, logger, old_model_data)
-    wandb.config.update(hyperparameters, allow_val_change=True)
+    # Confirm environment variables
+    print("Environment Variables:")
+    for key, value in os.environ.items():
+        print(f"  {key}: {value}")
+    print()
 
-    train(env, agent, logger, hyperparameters)
-    agent.save_model(full_path, log_to_wandb=True, artifact_name="finished_model")
-    evaluate_agent(
-        agent,
-        logger,
-        hyperparameters.get("eval_episodes"),
-        hyperparameters.get("eval_steps"),
-        True,
-    )
+    # Confirm working directory
+    cwd = os.getcwd()
+    print(f"Current Working Directory: {cwd}\n")
 
-    logger.close()
-    env.close()
+    # Confirm presence of expected files
+    expected_files = ["main.py", "requirements.txt"]
+    print("Checking for expected files:")
+    for file in expected_files:
+        exists = os.path.isfile(file)
+        print(f"  {file}: {'Found' if exists else 'Missing'}")
+    print()
 
-    wandb.finish()
+    # Test imports
+    print("Testing package imports...")
+    try:
+        import cv2
+        import gymnasium as gym
+        import imageio
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import tensorflow as tf
+        import torch
+
+        import wandb
+
+        print("All packages imported successfully.\n")
+    except ImportError as e:
+        print(f"Import Error: {e}\n")
+        sys.exit(1)
+
+    setup(args)
+
+    # Simulate some operations with the packages
+    print("Simulating operations with imported packages...\n")
+    tensor = torch.tensor([1, 2, 3])
+    print(f"Created a PyTorch tensor: {tensor}")
+
+    np_array = np.array([4, 5, 6])
+    print(f"Created a NumPy array: {np_array}")
+
+    tf_constant = tf.constant([7, 8, 9])
+    print(f"Created a TensorFlow constant: {tf_constant.numpy()}")
+
+    # Create a simple OpenCV image
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    cv2.putText(img, "Test", (5, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    cv2.imwrite("test-output/opencv_test.png", img)
+    print("Created an OpenCV test image: opencv_test.png")
+
+    # Create a simple matplotlib plot
+    plt.plot([1, 2, 3], [4, 5, 6])
+    plt.title("Matplotlib Test Plot")
+    plt.savefig("matplotlib_test.png")
+    print("Created a Matplotlib test plot: matplotlib_test.png\n")
+
+    # Test statements
+    test_statements = [
+        "Test statement 1: Docker is working!",
+        "Test statement 2: Printing to console.",
+        "Test statement 3: Saving to a text file.",
+        "Test statement 4: Mock program running.",
+        "Test statement 5: Docker setup successful.",
+    ]
+
+    # Print and save test statements
+    output_file = "test-output/test_output.txt"
+    print(f"Writing test statements to {output_file}...\n")
+    with open(output_file, "w") as f:
+        for statement in test_statements:
+            print(statement)
+            f.write(statement + "\n")
+            time.sleep(0.5)  # Simulate some processing time
+
+    print("\n=== Mock Program Completed Successfully ===")
 
 
 def setup(args):
@@ -64,34 +115,11 @@ def setup(args):
             "eval_steps": args.eval_steps,
             "use_gpu": args.use_gpu,
         }
-    else:
-        with open(args.hyperparameters_path, "r") as f:
-            hyperparameters = json.load(f)
 
-    logger = ExperimentLogger(args.log_dir, args.experiment_name)
-
-    old_model_data = None
-    if args.model_load_path is not None:
-        old_model_data = load_model(args.model_load_path)
-        logger.experiment_name = old_model_data["experiment_name"]
-
-        wandb.init(
-            project="gymnasium_car_racing",  # Replace with your project name
-            name=logger.experiment_name,
-            config=hyperparameters,
-            mode="online",
-            resume="allow",
-            id=old_model_data["wandb_run_id"],
-        )
-    else:
-        wandb.init(
-            project="gymnasium_car_racing",  # Replace with your project name
-            name=logger.experiment_name,
-            config=hyperparameters,
-            mode="online",
-        )
-
-    return hyperparameters, old_model_data, logger
+        # print hyperparameters
+        print("Hyperparameters:")
+        for key, value in hyperparameters.items():
+            print(f"  {key}: {value}")
 
 
 if __name__ == "__main__":
