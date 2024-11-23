@@ -3,3 +3,7 @@
 /checkpoint/
 /.idea/
 /wandb/
+
+/test/docker-test/test-output/
+
+/.cadence/
