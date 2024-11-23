@@ -88,15 +88,6 @@ class ExperimentLogger:
             "step/gradient_norm_moving_avg": moving_avg_grad
         }, step=step)
 
-        # with self.writer.as_default():
-        #     tf.summary.scalar("loss", loss, step)
-        #     tf.summary.scalar("average_loss", moving_avg_loss, step)
-        #     tf.summary.scalar("average_q", avg_q, step)
-        #     tf.summary.scalar("average_q_moving_avg", moving_avg_q, step)
-        #     tf.summary.scalar("gradient_norm", gradient_norm, step)
-        #     tf.summary.scalar("gradient_norm_moving_avg", moving_avg_grad, step)
-        #     tf.summary.scalar("buffer_size", buffer_size, step)
-
     def log_target_update(self):
         """
         Logs the occurrence of a target network update.
@@ -109,8 +100,6 @@ class ExperimentLogger:
         wandb.log({
             "TargetNetwork/Updates": self.target_updates
         })
-        # with self.writer.as_default():
-        #     tf.summary.scalar("TargetNetwork/Updates", self.target_updates, step)
 
     def log_episode_metrics(self, step,  step_count, total_reward, epsilon, buffer_size):
         """
@@ -147,12 +136,6 @@ class ExperimentLogger:
             "eval/total_reward": total_reward,
             "eval/average_reward": average_reward
         })
-
-
-        # with self.writer.as_default():
-        #     tf.summary.scalar("Eval steps/episode", step_count, episode)
-        #     tf.summary.scalar("Eval total reward/episode", total_reward, episode)
-        #     tf.summary.scalar("Eval avrg. reward", average_reward, episode)
 
     def log_image(self, rgb_array, step):
 

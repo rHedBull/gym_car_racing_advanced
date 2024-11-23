@@ -47,10 +47,9 @@ class DQN:
         # Device configuration
         if hyperparameters.get("use_gpu") and device() == "cuda":
             self.device = "cuda"
-            print("Using GPU for training.")
         else:
             self.device = "cpu"
-            print("Using CPU for training.")
+        print(f"Training on device: {self.device}")
 
         # Q-Network and Target Network
         self.q_network = QNetwork(state_size, action_size, hidden_size)
